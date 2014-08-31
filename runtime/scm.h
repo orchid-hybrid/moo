@@ -2,12 +2,14 @@ enum scm_type {
   scm_type_null,
   scm_type_pair,
   scm_type_symbol,
+  scm_type_number,
   scm_type_procedure,
   
   scm_gc_marked,
 };
 
 typedef struct scm scm;
+typedef void (*code_ptr)(scm** env);
 
 struct scm {
   enum scm_type typ;
@@ -17,8 +19,9 @@ struct scm {
       struct scm *cdr;
     } pair;
     int symbol_id;
+    int number_value;
     struct {
-      void *code_pointer; // TODO
+      code_ptr code; // TODO
       int env_size;
       struct scm **environment;
     } closure;
