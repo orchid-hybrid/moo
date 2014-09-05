@@ -1,0 +1,51 @@
+(load "../utilities/pattern.scm")
+(load "../utilities/traverse.scm")
+
+;; HOAS
+
+(define (nil) (lambda (nil sym var quasi unquot lam app) (nil)))
+(define (sym s) (lambda (nil sym var quasi unquot lam app) (sym s)))
+(define (var v) (lambda (nil sym var quasi unquot lam app) (var v)))
+(define (quasi q) (lambda (nil sym var quasi unquot lam app) (quasi q)))
+(define (unquot q) (lambda (nil sym var quasi unquot lam app) (unquot q)))
+(define (lam nms f) (lambda (nil sym var quasi unquot lam app) (lam nms f)))
+(define (app . exp) (lambda (nil sym var quasi unquot lam app) (app exp)))
+
+(define (concretize t)
+  ;; HOAS -> sexp
+  (t (lambda () '())
+     (lambda (s) s)
+     (lambda (v) v)
+     (lambda (q)
+       ;; `(quasiquote ,(quasiquote-concretize q)) ;; does not work as intended
+       `(,'quasiquote ,(quasiquote-concretize q)))
+     (lambda (q) `(,'unquote ,(concretize q)))
+     (lambda (nms f) (let ((gs (map gensym nms)))
+                       `(lambda ,gs ,(concretize (apply f gs)))))
+     (lambda (exp) (map concretize exp))))
+
+(define (quasiquote-concretize q)
+  (cond ((pair? q)
+         (cons (quasiquote-concretize (car q))
+               (quasiquote-concretize (cdr q))))
+        (else (concretize q))))
+
+(define (hoas env)
+  (traverse (lambda () (nil))
+            (lambda (v) (let ((r (assoc v env)))
+                          (if r (var (cdr r)) (sym v))))
+            (lambda (q)
+              (quasi (hoas-quasiquote env q)))
+            (lambda (q)
+              (error "unquote outside quasiquote"))
+            (lambda (xs m) (lam xs (lambda ys ((hoas (append (map cons xs ys) env)) m))))
+            (lambda (x) (apply app (map (hoas env) x)))))
+
+(define (hoas-quasiquote env q)
+  (cond ((pattern? '(unquote _) q) (unquot ((hoas env) (cadr q))))
+        ((pair? q)
+         (cons (hoas-quasiquote env (car q))
+               (hoas-quasiquote env (cdr q))))
+        ((symbol? q) (sym q))
+        ((null? q) (nil))
+        (else (error "not a thing in qq"))))
