@@ -247,7 +247,7 @@
              e
              (if (member e globally-bound)
                  (free! free-vars e)
-                 (error "out of scope!"))))
+                 (error "out of scope!" e))))
         ((primitive-value? e) e)
         ((pattern? '(if _ _ _) e)
          (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
@@ -320,10 +320,11 @@
 
 (define (c-gen-body body)
   (cond ((symbol? body) (list `(push ,body)))
-        ((boolean? body) (list (if body 'true 'false)))
-        ((pattern? `(quote ,symbol?) body) (list `(make-symbol ,(symbol->string (cadr body)))))
+        ((boolean? body) (list `(push ,(if body 'true 'false))))
+        ((pattern? `(quote ,symbol?) body)
+         (list `(push (make-symbol ,(symbol->string (cadr body))))))
         ((pattern? `(quote ,(disj null? (disj number? (disj boolean? string?)))) body)
-         (list (cadr body)))
+         (list `(push ,(cadr body))))
         ((pattern? '(if _ _ _) body)
          (list `(if ,(cadr body)
                     ,(c-gen-body (caddr body))
@@ -391,7 +392,13 @@
 
 ;; (compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
 
-(compile (desugar ''(x y)))
+;;(compile (desugar ''(x y)))
+
+(compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
+                    #t
+                    (lambda (s) (s 'yoo 'zoo))
+                    (lambda (p q) p)
+                    (lambda (p q) q))))
 
 ;; (compile (desugar '(lambda (pattern? p e)
 ;;                      (cond ((null? p) (null? e))
