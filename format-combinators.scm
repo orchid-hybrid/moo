@@ -101,8 +101,22 @@
       (lambda (ss m)
         (k ss (string-append m "\n")))))
 
+(define (~@ f)
+  (let ((f1 (f (lambda (ss m) m))))
+    (lambda (k)
+      (lambda (ss m)
+        (k (cdr ss) (foldl (lambda (m c) (string-append  m (f1 c ""))) m (car ss)))))))
+
 (define ~a (simple-formatter tostring))
 (define ~m (simple-formatter mangle))
 (define ~s (simple-formatter writestring))
 
 ;;(display ((formatter ~a ~s ~s "hi" ~m ~%)  "q"  "q" #\q 'hi>there))
+
+
+
+;; (compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
+;;                           #t
+;;                           (lambda (s) (s 'yoo 'zoo))
+;;                           (lambda (p q) p)
+;;                           (lambda (p q) q))))
