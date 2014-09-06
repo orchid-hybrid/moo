@@ -144,7 +144,8 @@
       (symbol? expr)
       (number? expr)
       (string? expr)
-      (boolean? expr)))
+      (boolean? expr)
+      (pattern? '(quote _) expr)))
 
 (define (traverse primitive-case var-case lam-case app-case)
   (lambda (exp)
@@ -320,11 +321,9 @@
 (define (c-gen-body body)
   (cond ((symbol? body) (list `(push ,body)))
         ((boolean? body) (list (if body 'true 'false)))
-
-        ;; ((pattern? `(quote ,symbol?) body) (list `(make-symbol ,(symbol->string (cadr body)))))
-        ;; ((pattern? `(quote ,(disj null? (disj number? (disj boolean? string?)))) body)
-        ;;  (list (cadr body)))
-
+        ((pattern? `(quote ,symbol?) body) (list `(make-symbol ,(symbol->string (cadr body)))))
+        ((pattern? `(quote ,(disj null? (disj number? (disj boolean? string?)))) body)
+         (list (cadr body)))
         ((pattern? '(if _ _ _) body)
          (list `(if ,(cadr body)
                     ,(c-gen-body (caddr body))
@@ -351,7 +350,7 @@
 
 ;; Compiler
 
-(define builtins '(null?))
+(define builtins '(cons car cdr null?))
 
 (define (compile form)
   (let ((bound-variables (append '(halt) (append prims builtins))))
@@ -390,7 +389,9 @@
 
 ;; (compile '(lambda (b f x y) (if b (f x) (f y))))
 
-(compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
+;; (compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
+
+(compile (desugar ''(x y)))
 
 ;; (compile (desugar '(lambda (pattern? p e)
 ;;                      (cond ((null? p) (null? e))
