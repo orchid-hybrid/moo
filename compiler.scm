@@ -370,14 +370,14 @@
                       (pretty-print `(define ,(car i) ,(cdr i))))
                     lambdas) (newline)
           (pretty-print hoisted-form) (newline)
-          (let ()
+          (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
+                (c-code-body (c-gen-body hoisted-form)))
             (display 'c-gen) (newline)
-            (for-each (lambda (i)
-                        (display-code (c-gen `(define ,(car i) ,(cdr i)))) (newline))
-                      lambdas)
+            (for-each (lambda (code) (display-code code) (newline)) c-codes)
             (newline)
-            (pretty-print (c-gen-body hoisted-form))) (newline)
-          #t)))))
+            (pretty-print c-code-body)) (newline)
+            
+            #t)))))
 
 (define (display-code code)
   (display "(") (display 'define-code) (display " ") (display (cadr code)) (newline)
@@ -388,9 +388,9 @@
 
 ;;(compile '(lambda (f x) (f (f (f x)))))
 
-;; (compile '(lambda (b f x y) (if b (f x) (f y))))
+;;(compile '(lambda (b f x y) (if b (f x) (f y))))
 
-;; (compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
+;;(compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
 
 ;;(compile (desugar ''(x y)))
 
