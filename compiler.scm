@@ -116,10 +116,13 @@
 ;; closure conversion
 
 (define (free! free-vars v)
-  ;; TODO: don't add if it's already there
-  (let ((frees (cell-value free-vars)))
-    (set-cell! free-vars (append frees (list v)))
-    `(vector-ref env ,(length frees))))
+  (let* ((frees (cell-value free-vars))
+         (len (length frees))
+         (existing (assoc v frees)))
+    (if existing
+        (cadr existing)
+        (begin (set-cell! free-vars (append (list (list v len)) frees))
+               `(vector-ref env ,len)))))
 
 (define (closure-convert bound free-vars e)
   (cond ((symbol? e)
