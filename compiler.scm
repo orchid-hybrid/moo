@@ -316,7 +316,7 @@
 (define (c-gen-pop-args acc args)
   (if (null? args)
       acc
-      (c-gen-pop-args (cons `(set! ,(car args) (pop)) acc) (cdr args))))
+      (c-gen-pop-args (cons `(declare scm ,(car args) (pop)) acc) (cdr args))))
 
 (define (c-gen-body body)
   (cond ((symbol? body) (list `(push ,body)))
@@ -331,15 +331,19 @@
                     ,(c-gen-body (cadddr body)))))
         ((pattern? '(vector-ref env _) body)
          (let ((i (caddr body)))
-           (list `(push (ref env ,i)))))
+           (list `(push (ref (* env) ,i)))))
         ((pattern? '(make-closure _ (vector . _)) body)
          (let ((name (cadr body)) (env (cdr (caddr body))))
            (if (null? env)
                (list `(push (closure ,name 0 null)))
                (let ((env-heap (gensym name)))
                  (concat
-                  (list (list `(set! ,env-heap (gc-alloc* ,(length env))))
-                        (map (lambda (i e) `(set! (ref ,env-heap ,i) ,e)) (up-to (length env)) env)
+                  (list (list `(declare scm** ,env-heap (gc-alloc* ,(length env))))
+                        (map (lambda (i e)
+                               (if (pattern? '(vector-ref env _) e)
+                                   `(set! (ref ,env-heap ,i) ,e)
+                                   `(set! (ref ,env-heap ,i) (gc-alloc-scm ,e))))
+                             (up-to (length env)) env)
                         (list `(push (closure ,name ,(length env) ,env-heap)))))))))
         ((pattern? '(invoke-closure _ . _) body)
          (let ((continuation (cadr body))
@@ -373,16 +377,14 @@
           (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
                 (c-code-body (c-gen-body hoisted-form)))
             (display 'c-gen) (newline)
-            (for-each (lambda (code) (display-code code) (newline)) c-codes)
-            (newline)
-            (pretty-print c-code-body)
-            (newline)
-            (display 'emit-c)
-            (newline)
+            (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
+            (pretty-print c-code-body) (newline)
             (let ((c-string (map emit-c (append c-codes `((define-code scm-main . ,c-code-body))))))
-              (display  c-string)
-              (newline)))
-            #t)))))
+              (display 'emit-c) (newline)
+              (for-each (lambda (c) (display c) (newline)) c-string)
+              (newline)
+              
+              #t)))))))
 
 (define (display-code code)
   (display "(") (display 'define-code) (display " ") (display (cadr code)) (newline)
@@ -390,10 +392,13 @@
   (display ")"))
 
 (define (emit-c exp)
-  (cond ((symbol? exp) ((formatter ~m) exp))
+  (cond ((equal? exp 'null) ((formatter "NULL")))
+        ((symbol? exp) ((formatter ~m) exp))
         ((number? exp) ((formatter ~a) exp))
         ((boolean? exp) ((formatter ~a) (if exp 'scm_true 'scm_false)))
         ((string? exp) ((formatter ~s) exp))
+        ((pattern? '(* _) exp)
+         ((formatter "*" ~e) (cadr exp)))
         ((pattern? '(define-code _ . _) exp)
          ((formatter "void " ~m "(scm **env) {" ~% (~@ ~e) "}" ~%)
           (cadr exp) (cddr exp)))
@@ -405,17 +410,21 @@
         ((pattern? '(push _) exp)
          ((formatter "stack_push(" ~e ");" ~%) (cadr exp)))
         ((pattern? '(closure _ _ _) exp)
-         ((formatter "closure(" ~e ", " ~e ", " ~e ")") (cadr exp) (caddr exp) (caddr exp)))
+         ((formatter "closure(" ~e ", " ~e ", " ~e ")") (cadr exp) (caddr exp) (cadddr exp)))
         ((pattern? '(vector-ref _ _) exp)
          ((formatter ~e "[" ~e "]") (cadr exp) (caddr exp)))
         ((pattern? '(ref _ _) exp)
          ((formatter ~e "[" ~e "]") (cadr exp) (caddr exp)))
         ((pattern? '(gc-alloc* _) exp)
          ((formatter "gc_alloc(" ~e "*sizeof(scm))") (cadr exp)))
+        ((pattern? '(gc-alloc-scm _) exp)
+         ((formatter "gc_alloc_scm(" ~e ")") (cadr exp)))
         ((pattern? '(make-symbol _) exp)
          ((formatter "symbol(" ~e ")") (cadr exp)))
         ((pattern? '(set! _ _) exp)
          ((formatter ~e " = " ~e ";" ~%) (cadr exp) (caddr exp)))
+        ((pattern? '(declare _ _ _) exp)
+         ((formatter ~a " " ~e " = " ~e ";" ~%) (cadr exp) (caddr exp) (cadddr exp)))
         (else (error "no emitter for: " exp))))
 
 (define ~e (simple-formatter emit-c))
@@ -423,7 +432,7 @@
 
 ;;(compile '(lambda (x) (+ x x)))
 
-;;(compile '(lambda (f x) (f (f (f x)))))
+(compile '(lambda (f x) (f (f (f x)))))
 
 ;;(compile '(lambda (b f x y) (if b (f x) (f y))))
 
@@ -433,11 +442,11 @@
 
 
 
-(compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
-                    #t
-                    (lambda (s) (s 'yoo 'zoo))
-                    (lambda (p q) p)
-                    (lambda (p q) q))))
+;; (compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
+;;                     #t
+;;                     (lambda (s) (s 'yoo 'zoo))
+;;                     (lambda (p q) p)
+;;                     (lambda (p q) q))))
 
 ;; (compile (desugar '(lambda (pattern? p e)
 ;;                      (cond ((null? p) (null? e))
