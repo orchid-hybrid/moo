@@ -2,6 +2,7 @@ enum scm_type {
   scm_type_null,
   scm_type_pair,
   scm_type_symbol,
+  scm_type_boolean,
   scm_type_number,
   scm_type_procedure,
   
@@ -20,6 +21,7 @@ struct scm {
     } pair;
     int symbol_id;
     int number_value;
+    int boolean_value;
     struct {
       code_ptr code; // TODO
       int env_size;

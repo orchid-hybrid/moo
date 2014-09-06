@@ -90,6 +90,9 @@ scm* gc_traverse_from(int copy, scm *s) {
       new_s->val.closure.environment[i] = gc_traverse_from(1, new_s->val.closure.environment[i]);
     }
     break;
+  default:
+    fprintf(stderr, "GC ERROR: Unimplemented type %d\n", new_s->typ);
+    exit(0);
   }
   
   return new_s;
