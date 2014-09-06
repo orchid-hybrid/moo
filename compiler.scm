@@ -379,7 +379,7 @@
             (newline)
             (display 'emit-c)
             (newline)
-            (let ((c-string (map emit-c (append c-codes `((define-code main . ,c-code-body))))))
+            (let ((c-string (map emit-c (append c-codes `((define-code scm-main . ,c-code-body))))))
               (display  c-string)
               (newline)))
             #t)))))
@@ -395,9 +395,8 @@
         ((boolean? exp) ((formatter ~a) (if exp 'scm_true 'scm_false)))
         ((string? exp) ((formatter ~s) exp))
         ((pattern? '(define-code _ . _) exp)
-         ((formatter "void " ~m "(scm **env) {" ~% ~a "}" ~%)
-          (cadr exp)
-          (foldl (lambda (m c) (string-append  m "  " (emit-c c))) "" (cddr exp))))
+         ((formatter "void " ~m "(scm **env) {" ~% (~@ ~e) "}" ~%)
+          (cadr exp) (cddr exp)))
         ((pattern? '(if _ _ _) exp)
          ((formatter "if (" ~e ") {" ~% (~@ ~e) ~% " } else { " ~% (~@ ~e) ~% " }" ~%)
           (cadr exp) (caddr exp) (cadddr exp)))
@@ -405,19 +404,14 @@
          ((formatter "stack_pop()")))
         ((pattern? '(push _) exp)
          ((formatter "stack_push(" ~e ");" ~%) (cadr exp)))
-
-
         ((pattern? '(closure _ _ _) exp)
          ((formatter "closure(" ~e ", " ~e ", " ~e ")") (cadr exp) (caddr exp) (caddr exp)))
-
         ((pattern? '(vector-ref _ _) exp)
          ((formatter ~e "[" ~e "]") (cadr exp) (caddr exp)))
-
         ((pattern? '(ref _ _) exp)
          ((formatter ~e "[" ~e "]") (cadr exp) (caddr exp)))
         ((pattern? '(gc-alloc* _) exp)
          ((formatter "gc_alloc(" ~e "*sizeof(scm))") (cadr exp)))
-
         ((pattern? '(make-symbol _) exp)
          ((formatter "symbol(" ~e ")") (cadr exp)))
         ((pattern? '(set! _ _) exp)

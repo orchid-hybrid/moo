@@ -102,10 +102,10 @@
         (k ss (string-append m "\n")))))
 
 (define (~@ f)
-  (let ((f1 (f (lambda (ss m) m))))
-    (lambda (k)
-      (lambda (ss m)
-        (k (cdr ss) (foldl (lambda (m c) (string-append  m (f1 c ""))) m (car ss)))))))
+  (lambda (k)
+    (lambda (ss m)
+      (k (cdr ss) (foldl (lambda (m c) ((formatter m f) c)) m (car ss))))))
+            
 
 (define ~a (simple-formatter tostring))
 (define ~m (simple-formatter mangle))
