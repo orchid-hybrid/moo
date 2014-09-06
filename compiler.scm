@@ -120,8 +120,8 @@
          (len (length frees))
          (existing (assoc v frees)))
     (if existing
-        (cadr existing)
-        (begin (set-cell! free-vars (append (list (list v len)) frees))
+        (cdr existing)
+        (begin (set-cell! free-vars (append (list (cons v `(vector-ref env ,len))) frees))
                `(vector-ref env ,len)))))
 
 (define (closure-convert bound free-vars e)
@@ -143,11 +143,12 @@
            (let ((inner-free-vars (make-cell '())))
              `(make-closure (lambda ,(cons 'env vs)
                               ,(closure-convert vs inner-free-vars m))
-                            (vector . ,(map (lambda (a) (closure-convert bound free-vars a))
+                            (vector . ,(map (lambda (a) (closure-convert bound free-vars (car a)))
                                             (cell-value inner-free-vars)))))))
         ((list? e)
          ;; app
-         `(invoke-closure . ,(map (lambda (a) (closure-convert bound free-vars a)) e)))))
+         `(invoke-closure . ,(map (lambda (a)
+                                    (closure-convert bound free-vars a)) e)))))
 
 
 ;; Hoist
@@ -180,6 +181,11 @@
       '()
       (append (car lists) (concat (cdr lists)))))
 
+(define (iota acc n)
+  (if (zero? n)
+      acc
+      (iota (cons n acc) (- n 1))))
+
 (define (c-gen def)
   (if (pattern? '(define _ (lambda (env . _) _)) def)
       (let ((name (cadr def)) (args (cdadr (caddr def))) (body (caddr (caddr def))))
@@ -189,15 +195,22 @@
 (define (c-gen-pop-args acc args)
   (if (null? args)
       acc
-      (c-gen-pop-args (cons `(pop ,(car args)) acc) (cdr args))))
+      (c-gen-pop-args (cons `(set! ,(car args) (pop)) acc) (cdr args))))
 
 (define (c-gen-body body)
   (cond ((symbol? body) (list `(push ,body)))
         ((pattern? '(vector-ref env _) body)
          (let ((i (caddr body)))
            (list `(push (ref env ,i)))))
-        ((pattern? '(make-closure _ _) body)
-         ...)
+        ((pattern? '(make-closure _ (vector . _)) body)
+         (let ((name (cadr body)) (env (cdr (caddr body))))
+           (if (null? env)
+               (list `(push (closure ,name 0 null)))
+               (let ((env-heap (gensym name)))
+                 (concat
+                  (list (list `(set! ,env-heap (gc-alloc* ,(length env))))
+                        (map (lambda (i e) `(set! (ref ,env-heap i) ,e)) (iota '() (length env)) env)
+                        (list `(push (closure ,name ,(length env) ,env-heap)))))))))
         ((pattern? '(invoke-closure _ . _) body)
          (let ((continuation (cadr body))
                (arguments (cddr body)))
@@ -205,7 +218,6 @@
                    (c-gen-body continuation))))
         (else (display (list 'c-gen-body body)) (newline)
               (error "error in c-gen-body"))))
-
 
 ;; Compiler
 
@@ -229,11 +241,17 @@
           (let ()
             (display 'c-gen) (newline)
             (for-each (lambda (i)
-                        (display (c-gen `(define ,(car i) ,(cdr i)))) (newline))
+                        (display-code (c-gen `(define ,(car i) ,(cdr i)))) (newline))
                       lambdas)) (newline)
           #t)))))
 
-;;(compile '(lambda (x) (+ x x)))
+(define (display-code code)
+  (display "(") (display 'define-code) (display " ") (display (cadr code)) (newline)
+  (for-each (lambda (inst) (display "  ") (display inst) (newline)) (cddr code))
+  (display ")"))
+  
+  ;;(compile '(lambda (x) (+ x x)))
+  
 
 (compile '(lambda (f x) (f (f (f x)))))
 
