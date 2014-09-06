@@ -239,31 +239,33 @@
         (begin (set-cell! free-vars (append frees (list (cons v `(vector-ref env ,len)))))
                `(vector-ref env ,len)))))
 
-(define (closure-convert bound free-vars e)
+(define (closure-convert globally-bound bound free-vars e)
   (cond ((symbol? e)
          ;; var
          (if (member e bound)
              e
-             (free! free-vars e)))
+             (if (member e globally-bound)
+                 (free! free-vars e)
+                 (error "out of scope!"))))
         ((primitive-value? e) e)
         ((pattern? '(if _ _ _) e)
          (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
-           `(if ,(closure-convert bound free-vars b)
-                ,(closure-convert bound free-vars thn)
-                ,(closure-convert bound free-vars els))))
+           `(if ,(closure-convert globally-bound bound free-vars b)
+                ,(closure-convert globally-bound bound free-vars thn)
+                ,(closure-convert globally-bound bound free-vars els))))
         ((pattern? '(lambda _ _) e)
          (let ((vs (if (list? (cadr e)) (cadr e) (list (cadr e)))) (m (caddr e)))
            ;; lam
            ;; TODO trouble here [vs] with varargs
            (let ((inner-free-vars (make-cell '())))
              `(make-closure (lambda ,(cons 'env vs)
-                              ,(closure-convert vs inner-free-vars m))
-                            (vector . ,(map (lambda (a) (closure-convert bound free-vars (car a)))
+                              ,(closure-convert (append vs globally-bound) vs inner-free-vars m))
+                            (vector . ,(map (lambda (a) (closure-convert globally-bound bound free-vars (car a)))
                                             (cell-value inner-free-vars)))))))
         ((list? e)
          ;; app
          `(invoke-closure . ,(map (lambda (a)
-                                    (closure-convert bound free-vars a)) e)))))
+                                    (closure-convert globally-bound bound free-vars a)) e)))))
 
 
 ;; Hoist
@@ -349,15 +351,17 @@
 
 ;; Compiler
 
+(define builtins '(null?))
+
 (define (compile form)
-  (let ((bound-variables (append '(halt) prims)))
+  (let ((bound-variables (append '(halt) (append prims builtins))))
     
     (display 'compiling) (newline)
     (pretty-print form) (newline)
     (let ((cps-form (T-c form 'halt)))
       (display 'cps) (newline)
       (pretty-print cps-form) (newline)
-      (let ((cc-form (closure-convert bound-variables (make-cell '()) cps-form)))
+      (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
         (display 'cc) (newline)
         (pretty-print cc-form) (newline)
         (let ((hoisted-form (hoist cc-form)))
@@ -370,7 +374,9 @@
             (display 'c-gen) (newline)
             (for-each (lambda (i)
                         (display-code (c-gen `(define ,(car i) ,(cdr i)))) (newline))
-                      lambdas)) (newline)
+                      lambdas)
+            (newline)
+            (pretty-print (c-gen-body hoisted-form))) (newline)
           #t)))))
 
 (define (display-code code)
@@ -382,7 +388,9 @@
 
 ;;(compile '(lambda (f x) (f (f (f x)))))
 
-(compile '(lambda (b f x y) (if b (f x) (f y))))
+;; (compile '(lambda (b f x y) (if b (f x) (f y))))
+
+(compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
 
 ;; (compile (desugar '(lambda (pattern? p e)
 ;;                      (cond ((null? p) (null? e))
@@ -392,6 +400,8 @@
 ;;                            (else (and (pair? e)
 ;;                                       (pattern? (car p) (car e))
 ;;                                       (pattern? (cdr p) (cdr e))))))))
+
+(exit)
 
 ;; (compile (desugar '(define (desugar exp)
 ;;   (cond
