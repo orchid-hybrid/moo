@@ -138,7 +138,7 @@
            ;; lam
            ;; TODO trouble here [vs] with varargs
            (let ((inner-free-vars (make-cell '())))
-             `(make-closure (lambda ,(cons (car vs) (cons 'env (cdr vs)))
+             `(make-closure (lambda ,(cons 'env vs)
                               ,(closure-convert vs inner-free-vars m))
                             (vector . ,(map (lambda (a) (closure-convert bound free-vars a))
                                             (cell-value inner-free-vars)))))))
@@ -170,6 +170,39 @@
          (map hoist e))
         (else "unknown in hoist")))
 
+;; C
+
+(define (concat lists)
+  (if (null? lists)
+      '()
+      (append (car lists) (concat (cdr lists)))))
+
+(define (c-gen def)
+  (if (pattern? '(define _ (lambda (env . _) _)) def)
+      (let ((name (cadr def)) (args (cdadr (caddr def))) (body (caddr (caddr def))))
+        `(define-code ,name . ,(append (c-gen-pop-args '() args) (c-gen-body body))))
+      (error "malformed definition")))
+
+(define (c-gen-pop-args acc args)
+  (if (null? args)
+      acc
+      (c-gen-pop-args (cons `(pop ,(car args)) acc) (cdr args))))
+
+(define (c-gen-body body)
+  (cond ((symbol? body) (list `(push ,body)))
+        ((pattern? '(vector-ref env _) body)
+         (let ((i (caddr body)))
+           (list `(push (ref env ,i)))))
+        ((pattern? '(make-closure _ _) body)
+         ...)
+        ((pattern? '(invoke-closure _ . _) body)
+         (let ((continuation (cadr body))
+               (arguments (cddr body)))
+           (append (concat (map c-gen-body arguments))
+                   (c-gen-body continuation))))
+        (else (display (list 'c-gen-body body)) (newline)
+              (error "error in c-gen-body"))))
+
 
 ;; Compiler
 
@@ -190,8 +223,16 @@
                       (pretty-print `(define ,(car i) ,(cdr i))))
                     lambdas) (newline)
           (pretty-print hoisted-form) (newline)
+          (let ()
+            (display 'c-gen) (newline)
+            (for-each (lambda (i)
+                        (display (c-gen `(define ,(car i) ,(cdr i)))) (newline))
+                      lambdas)) (newline)
           #t)))))
 
+;;(compile '(lambda (x) (+ x x)))
+
+(compile '(lambda (f x) (f (f (f x)))))
 
 ;; testing
 
@@ -200,11 +241,13 @@
     ((car args) (apply f (cdr args)))))
 
 (define (make-closure code env) (cons code env))
-(define (invoke-closure closure . args) (apply (car closure) (cons (car args) (cons (cdr closure) (cdr args)))))
+(define (invoke-closure closure . args) (apply (car closure) (cons (cdr closure) args)))
 
 (define *k (make-closure (lambda (k env x y) (invoke-closure k (* x y))) (vector)))
 (define +k (make-closure (lambda (k env x y) (invoke-closure k (+ x y))) (vector)))
 (define halt (make-closure (lambda (r env) (display r)) (vector)))
+
+;; N.B. made env come first
 
 ;; (compile '(+ 1 (* 2 3))))
 
@@ -239,3 +282,5 @@
 ;;   (make-closure lambda247 (vector *k *k))
 ;;   (make-closure lambda248 (vector +k halt))
 ;;   7)
+
+
