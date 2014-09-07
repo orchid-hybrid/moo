@@ -20,6 +20,11 @@ scm bool(int b) {
   return (scm){ .typ=scm_type_boolean, .val.boolean_value=b };
 }
 
+int scm_truep(scm b) {
+  assert(b.typ == scm_type_boolean);
+  return b.val.boolean_value;
+}
+
 scm closure(code_ptr f, int len, scm** env) {
   return (scm){ .typ=scm_type_procedure, .val.closure.code=f , .val.closure.env_size=len, .val.closure.environment = env };
 }
