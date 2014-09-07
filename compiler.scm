@@ -245,9 +245,11 @@
          ;; var
          (if (member e bound)
              e
-             (if (member e globally-bound)
-                 (free! free-vars e)
-                 (error "out of scope!" e))))
+             (if (builtin? e)
+                 `(make-closure ,e (vector))
+                 (if (member e globally-bound)
+                     (free! free-vars e)
+                     (error "out of scope!" e)))))
         ((primitive-value? e) e)
         ((pattern? '(if _ _ _) e)
          (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
@@ -320,7 +322,8 @@
 
 (define (c-gen-body body)
   (cond ((symbol? body) (list `(push ,body)))
-        ((boolean? body) (list `(push ,(if body 'true 'false))))
+        ((number? body) (list `(push (make-number ,body))))
+        ((boolean? body) (list `(push ,body)))
         ((pattern? `(quote ,symbol?) body)
          (list `(push (make-symbol ,(symbol->string (cadr body))))))
         ((pattern? `(quote ,(disj null? (disj number? (disj boolean? string?)))) body)
@@ -355,14 +358,15 @@
 
 ;; Compiler
 
-(define builtins '(cons car cdr null?))
+(define builtins '(cons car cdr null? display))
+(define (builtin? s) (member s builtins))
 
 (define (compile form)
-  (let ((bound-variables (append '(halt) (append prims builtins))))
+  (let ((bound-variables (append (append prims))))
     
     (display 'compiling) (newline)
     (pretty-print form) (newline)
-    (let ((cps-form (T-c form 'halt)))
+    (let ((cps-form (T-c form 'display)))
       (display 'cps) (newline)
       (pretty-print cps-form) (newline)
       (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
@@ -398,7 +402,7 @@
   (cond ((equal? exp 'null) ((formatter "NULL")))
         ((symbol? exp) ((formatter ~m) exp))
         ((number? exp) ((formatter ~a) exp))
-        ((boolean? exp) ((formatter ~a) (if exp 'scm_true 'scm_false)))
+        ((boolean? exp) ((formatter "bool(" ~a ")") (if exp 1 0)))
         ((string? exp) ((formatter ~s) exp))
         ((pattern? '(* _) exp)
          ((formatter "*" ~e) (cadr exp)))
@@ -423,7 +427,9 @@
         ((pattern? '(gc-alloc-scm _) exp)
          ((formatter "gc_alloc_scm(" ~e ")") (cadr exp)))
         ((pattern? '(make-symbol _) exp)
-         ((formatter "symbol(" ~e ")") (cadr exp)))
+         ((formatter "sym(" ~e ")") (cadr exp)))
+        ((pattern? '(make-number _) exp)
+         ((formatter "num(" ~e ")") (cadr exp)))
         ((pattern? '(set! _ _) exp)
          ((formatter ~e " = " ~e ";") (cadr exp) (caddr exp)))
         ((pattern? '(declare _ _ _) exp)
@@ -445,8 +451,8 @@
 
 
 
-(compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
-                    #t
+(compile (desugar '((lambda (b f x y)  (if b (f x) (f y)))
+                    #f
                     (lambda (s) (s 'yoo 'zoo))
                     (lambda (p q) p)
                     (lambda (p q) q))))
