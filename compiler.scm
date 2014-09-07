@@ -435,7 +435,7 @@
 
 ;;(compile '(lambda (x) (+ x x)))
 
-(compile '(lambda (f x) (f (f (f x)))))
+;;(compile '(lambda (f x) (f (f (f x)))))
 
 ;;(compile '(lambda (b f x y) (if b (f x) (f y))))
 
@@ -445,11 +445,11 @@
 
 
 
-;; (compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
-;;                     #t
-;;                     (lambda (s) (s 'yoo 'zoo))
-;;                     (lambda (p q) p)
-;;                     (lambda (p q) q))))
+(compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
+                    #t
+                    (lambda (s) (s 'yoo 'zoo))
+                    (lambda (p q) p)
+                    (lambda (p q) q))))
 
 ;; (compile (desugar '(lambda (pattern? p e)
 ;;                      (cond ((null? p) (null? e))
