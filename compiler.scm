@@ -382,8 +382,11 @@
             (let ((c-string ((formatter (~@ ~e ~%) ~e)
                              c-codes `(define-code scm-main . ,c-code-body))))
               (display 'emit-c) (newline)
-              (display  c-string)
+              (display c-string)
               (newline)
+              (with-output-to-file "moo.c"
+                (lambda ()
+                  (display c-string) (newline)))
               #t)))))))
 
 (define (display-code code)
