@@ -404,6 +404,7 @@
   (cond ((equal? exp 'null) ((formatter "NULL")))
         ((symbol? exp) ((formatter ~m) exp))
         ((number? exp) ((formatter ~a) exp))
+        ((null? exp) ((formatter "(scm){ .typ=scm_type_null }")))
         ((boolean? exp) ((formatter "bool(" ~a ")") (if exp 1 0)))
         ((string? exp) ((formatter ~s) exp))
         ((pattern? '(* _) exp)
@@ -451,123 +452,15 @@
 
 ;;(compile (desugar ''(x y)))
 
+;; (compile (desugar '((lambda (b f x y)  (if b (f x) (f y)))
+;;                     #t
+;;                     (lambda (s) (s 'yoo 'zoo))
+;;                     (lambda (p q) p)
+;;                     (lambda (p q) q))))
 
-
-(compile (desugar '((lambda (b f x y)  (if b (f x) (f y)))
-                    #f
-                    (lambda (s) (s 'yoo 'zoo))
-                    (lambda (p q) p)
-                    (lambda (p q) q))))
-
-;; (compile (desugar '(lambda (pattern? p e)
-;;                      (cond ((null? p) (null? e))
-;;                            ((equal? p '_) #t)
-;;                            ((symbol? p) (and (symbol? e) (equal? p e)))
-;;                            ((procedure? p) (p e))
-;;                            (else (and (pair? e)
-;;                                       (pattern? (car p) (car e))
-;;                                       (pattern? (cdr p) (cdr e))))))))
+(compile (desugar '(car '(x y))))
 
 (exit)
-
-;; (compile (desugar '(define (desugar exp)
-;;   (cond
-;;    ((pattern? '(set! _ _) exp) `(set! ,(cadr exp) ,(desugar (caddr exp))))
- 
-;;    ((pattern? '(begin . _) exp)
-;;     (cons 'begin (map desugar (cdr exp))))
-   
-;;    ((pattern? '(lambda _ . _) exp)
-;;     (let ((params (cadr exp))
-;;           (body (cddr exp)))
-;;       `(lambda ,params ,(desugar (cons 'begin body)))))
-
-;;    ((pattern? `(let ,symbol? ,list? . _) exp)
-;;     (let* ((name (cadr exp))
-;;            (bindings (caddr exp))
-;; 	   (params (map car bindings))
-;; 	   (values (map cadr bindings))
-;; 	   (body (cdddr exp)))
-;;       (desugar `((y-combinator (lambda (,name) (lambda ,params . ,body))) . ,values))))
-   
-;;    ((pattern? `(let ,list? . _) exp)
-;;     (let* ((bindings (cadr exp))
-;; 	   (params (map car bindings))
-;; 	   (values (map cadr bindings))
-;; 	   (body (cddr exp)))
-;;       (desugar `((lambda ,params . ,body) . ,values))))
-   
-;;    ((pattern? `(let* ,list? . _) exp)
-;;     (let* ((bindings (cadr exp))
-;; 	   (body (cddr exp)))
-;;       (desugar
-;;        (append `(let (,(car bindings)))
-;;                (if (null? (cdr bindings))
-;;                    body
-;;                    `((let* ,(cdr bindings) . ,body)))))))
-
-;;    ((pattern? `(define _ _ . _) exp)
-;;     (let ((name (caadr exp))
-;; 	  (params (cdadr exp))
-;; 	  (body (cddr exp)))
-;;       `(define ,name ,(desugar `(lambda ,params . ,body)))))
-   
-;;    ((pattern? `(if _ _ _) exp)
-;;     (let ((b (cadr exp))
-;; 	  (then (caddr exp))
-;; 	  (else (cadddr exp)))
-;;       `(if ,(desugar b)
-;;            ,(desugar then)
-;;            ,(desugar else))))
-   
-;;    ((pattern? '(cond . _) exp)
-;;     (cond
-;;      ;; (cond)
-;;      ((equal? '(cond) exp) '())
-;;      ;; (cond (else b))
-;;      ((and (equal? 'else (caadr exp))
-;; 	   (= 2 (length exp)))
-;;       (desugar (cons 'begin (cdadr exp))))
-;;      ;; (cond (a b))
-;;      ((= 2 (length exp))
-;;       (desugar `(if ,(caadr exp)
-;;                     ,(cons 'begin (cdadr exp))
-;;                     '())))
-;;      ;; (coond (a b) rest ...)
-;;      ((> (length exp) 2)
-;;       (desugar `(if ,(caadr exp)
-;;                     ,(cons 'begin (cdadr exp))
-;;                     (cond . ,(cddr exp)))))))
-   
-;;    ((pattern? '(and . _) exp)
-;;     (if (null? (cdr exp))
-;;         #t
-;;         (desugar `(if ,(cadr exp) ,(cons 'and (cddr exp)) #f))))
-   
-;;   ((pattern? '(or . _) exp)
-;;     (if (null? (cdr exp))
-;;         #f
-;;         (desugar `(if ,(cadr exp) #t ,(cons 'or (cddr exp))))))
-   
-;;     ((pattern? '(quote _) exp)
-;;      (quote-desugar (cadr exp)))
-;;     ((pattern? '(quasiquote _) exp)
-;;      (quasiquote-desugar (cadr exp)))
-;;     ((pattern? '(unquote _) exp)
-;;      (error "unquote"))
-    
-;;     ;;var
-;;     ((symbol? exp) exp)
-;;     ;; app
-;;     ((pattern? `(,(disj symbol? list?) . _) exp)
-;;      (if (equal? (car exp) 'list)
-;;          (fold (lambda (x ys)
-;;                  (list 'cons (desugar x) ys))
-;;                ''()
-;;                (cdr exp))
-;;          (map desugar exp)))
-;;     (else exp))))))
-
 
 ;; testing
 
@@ -581,41 +474,5 @@
 (define *k (make-closure (lambda (k env x y) (invoke-closure k (* x y))) (vector)))
 (define +k (make-closure (lambda (k env x y) (invoke-closure k (+ x y))) (vector)))
 (define halt (make-closure (lambda (r env) (display r)) (vector)))
-
-;; N.B. made env come first
-
-;; (compile '(+ 1 (* 2 3))))
-
-;; (define lambda246
-;;   (lambda (rv245 env)
-;;     (invoke-closure (vector-ref env 0) (vector-ref env 1) 1 rv245)))
-
-;; (invoke-closure *k (make-closure lambda246 (vector +k halt)) 2 3)
-
-
-;; (compile '(+ ((lambda (x) (* x (* x x))) 7) 3))
-
-;; (define lambda246
-;;   (lambda (rv245 env)
-;;     (invoke-closure
-;;       (vector-ref env 0)
-;;       (vector-ref env 1)
-;;       (vector-ref env 2)
-;;       rv245)))
-;; (define lambda247
-;;   (lambda (k244 env x)
-;;     (invoke-closure
-;;       (vector-ref env 0)
-;;       (make-closure lambda246 (vector (vector-ref env 1) k244 x))
-;;       x
-;;       x)))
-;; (define lambda248
-;;   (lambda (rv243 env)
-;;     (invoke-closure (vector-ref env 0) (vector-ref env 1) rv243 3)))
-
-;; (invoke-closure
-;;   (make-closure lambda247 (vector *k *k))
-;;   (make-closure lambda248 (vector +k halt))
-;;   7)
 
 

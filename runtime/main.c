@@ -25,6 +25,33 @@ int scm_truep(scm b) {
   return b.val.boolean_value;
 }
 
+
+void cons(scm **env) {
+  scm *b = gc_alloc_scm(stack_pop());
+  scm *a = gc_alloc_scm(stack_pop());
+  scm cont = stack_pop();
+  stack_push((scm){ .typ=scm_type_pair, .val.pair.car=a , .val.pair.cdr=b });
+  stack_push(cont);
+}
+
+void car(scm **env) {
+  scm p = stack_pop();
+  scm cont = stack_pop();
+  assert(p.typ == scm_type_pair);
+  stack_push(*p.val.pair.car);
+  stack_push(cont);
+}
+
+void cdr(scm **env) {
+  scm p = stack_pop();
+  scm cont = stack_pop();
+  assert(p.typ == scm_type_pair);
+  stack_push(*p.val.pair.cdr);
+  stack_push(cont);
+}
+
+
+
 scm closure(code_ptr f, int len, scm** env) {
   return (scm){ .typ=scm_type_procedure, .val.closure.code=f , .val.closure.env_size=len, .val.closure.environment = env };
 }
@@ -39,6 +66,7 @@ void display(scm **env) {
     printf("%s\n", get_symbol(result.val.symbol_id));
   }
   else {
+    printf("%d\n", result.typ);
     puts("FAIL");
   }
   exit(0);
