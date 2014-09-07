@@ -23,7 +23,7 @@ struct scm {
     int number_value;
     int boolean_value;
     struct {
-      code_ptr code; // TODO
+      code_ptr code;
       int env_size;
       struct scm **environment;
     } closure;
@@ -44,3 +44,5 @@ void init_gc(int set_size);
 void* gc_alloc(int size);
 scm* gc_alloc_scm(scm s);
 void gc_garbage_collect(void);
+void nursery_hold(scm s);
+void sacrifice_children(void);

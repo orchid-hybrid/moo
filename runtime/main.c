@@ -50,6 +50,18 @@ void cdr(scm **env) {
   stack_push(cont);
 }
 
+void null_question(scm **env) {
+  scm p = stack_pop();
+  scm cont = stack_pop();
+  if(p.typ == scm_type_null) {
+    stack_push(bool(1));
+  }
+  else {
+    stack_push(bool(0));
+  }
+  stack_push(cont);
+}
+
 
 
 scm closure(code_ptr f, int len, scm** env) {
@@ -66,9 +78,12 @@ void display(scm **env) {
     printf("%s\n", get_symbol(result.val.symbol_id));
   }
   else {
-    printf("%d\n", result.typ);
     puts("FAIL");
+    printf("<type: %d>\n", result.typ);
   }
+}
+
+void halt(scm **env) {
   exit(0);
 }
 
@@ -77,14 +92,15 @@ void display(scm **env) {
 int main(void) {
   scm result;
   
-  init_symbol_table(1);
+  init_symbol_table(10);
   init_stack();
   init_gc(1);
   
   stack_push(closure(scm_main, 0, NULL));
   
   while(1) {
-    result = stack_pop(); // GC issue, how to deal with this
+    sacrifice_children();
+    result = stack_pop(); nursery_hold(result);
     if(result.typ == scm_type_procedure) {
       result.val.closure.code(result.val.closure.environment);
     }

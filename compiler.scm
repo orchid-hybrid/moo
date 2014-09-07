@@ -360,7 +360,7 @@
 
 ;; Compiler
 
-(define builtins '(cons car cdr null? display))
+(define builtins '(cons car cdr null? display halt))
 (define (builtin? s) (member s builtins))
 
 (define (compile form)
@@ -368,7 +368,7 @@
     
     (display 'compiling) (newline)
     (pretty-print form) (newline)
-    (let ((cps-form (T-c form 'display)))
+    (let ((cps-form (T-c form 'halt)))
       (display 'cps) (newline)
       (pretty-print cps-form) (newline)
       (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
@@ -410,10 +410,16 @@
         ((pattern? '(* _) exp)
          ((formatter "*" ~e) (cadr exp)))
         ((pattern? '(define-code _ . _) exp)
-         ((formatter "void " ~m "(scm **env) {" ~% (~@ ~e ~%) "}" ~%)
-          (cadr exp) (cddr exp)))
+         
+         ;; ((formatter "void " ~m "(scm **env) { " ~% (~@ ~e ~%) "}" ~%)
+         ;;  (cadr exp) (cddr exp))
+         
+         ((formatter "void " ~m "(scm **env) { puts(\"" ~m "\");" ~% (~@ ~e ~%) "}" ~%)
+          (cadr exp) (cadr exp) (cddr exp))
+         
+         )
         ((pattern? '(if _ _ _) exp)
-         ((formatter "if (scm_truep(" ~e ")) {" ~% (~@ ~e ~%) ~% " } else { " ~% (~@ ~e ~%) ~% " }" ~%)
+         ((formatter "if (scm_truep(" ~e ")) {" ~% (~@ ~e ~%) "} else {" ~% (~@ ~e ~%) "}" ~%)
           (cadr exp) (caddr exp) (cadddr exp)))
         ((pattern? '(pop) exp)
          ((formatter "stack_pop()")))
@@ -435,6 +441,8 @@
          ((formatter "num(" ~e ")") (cadr exp)))
         ((pattern? '(set! _ _) exp)
          ((formatter ~e " = " ~e ";") (cadr exp) (caddr exp)))
+        ((pattern? '(declare _ _ (pop)) exp)
+         ((formatter ~a " " ~e " = " ~e "; nursery_hold(" ~e ");") (cadr exp) (caddr exp) (cadddr exp) (caddr exp)))
         ((pattern? '(declare _ _ _) exp)
          ((formatter ~a " " ~e " = " ~e ";") (cadr exp) (caddr exp) (cadddr exp)))
         (else (error "no emitter for: " exp))))
@@ -458,7 +466,43 @@
 ;;                     (lambda (p q) p)
 ;;                     (lambda (p q) q))))
 
-(compile (desugar '(car '(x y))))
+;;(compile (desugar '(car '(x y))))
+
+;; (compile (desugar '(((lambda (s)
+;;                        (lambda (l)
+;;                          (if (null? l) (display 'end)
+;;                              (begin (display (car l)) (s (cdr l))))))
+;;                      ((lambda (s)
+;;                         (lambda (l)
+;;                           (if (null? l) (display 'end)
+;;                               (begin (display (car l)) (s (cdr l))))))
+;;                       ((lambda (s)
+;;                         (lambda (l)
+;;                           (if (null? l) (display 'end)
+;;                               (begin (display (car l)) (s (cdr l))))))
+;;                       (lambda (l)
+;;                         (if (null? l) (display 'end)
+;;                             (begin (display (car l)) (display 'no)))))))
+;;                     '(foo bar baz))))
+
+;; (compile (desugar '(((lambda (f)
+;;                        (f (f (f (lambda (e) (display 'no))))))
+;;                      (lambda (s)
+;;                        (lambda (l)
+;;                          (if (null? l) (display 'end)
+;;                              (begin (display (car l)) (s (cdr l)))))))
+;;                     '(foo bar baz))))
+
+(compile (desugar '(((lambda (r)
+                       ((lambda (f) (f f))
+                        (lambda (f) (r (lambda (x) ((f f) x))))))
+                     (lambda (s)
+                       (lambda (l)
+                         (if (null? l) (display 'end)
+                             (begin (display (car l)) (s (cdr l)))))))
+                    '(foo bar baz))))
+
+;;(compile (desugar '()))
 
 (exit)
 
