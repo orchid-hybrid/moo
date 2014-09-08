@@ -324,7 +324,6 @@
                `(vector-ref env ,len)))))
 
 (define (closure-convert globally-bound bound free-vars e)
-  (display e)(newline)
   (cond ((symbol? e)
          ;; var
          (if (member e bound)
@@ -618,22 +617,25 @@
 ;;                              (begin (display (car l)) (s (cdr l)))))))
 ;;                     '(foo bar baz quux a b c d e f g h i z e e e e o o u o)))
 
-(compile (desugar '(display (((lambda (r)
-                                ((lambda (f) (f f))
-                                 (lambda (f) (r (lambda (x) ((f f) x))))))
-                              (lambda (f)
-                                (lambda (a b count)
-                                  (if (< count 0)
-                                      b
-                                      (f (+ a b) a (- count 1))))))
-                             1 0 50))))
+;; (compile (desugar '(display (((lambda (r)
+;;                                 ((lambda (f) (f f))
+;;                                  (lambda (f) (r (lambda (x) ((f f) x))))))
+;;                               (lambda (f)
+;;                                 (lambda (a b count)
+;;                                   (if (< count 0)
+;;                                       b
+;;                                       (f (+ a b) a (- count 1))))))
+;;                              1 0 50))))
 
-(compile (desugar '((lambda (a)
-                               (display a)
-                               (set! a 2)
-                               (display a)
-                               (set! a 3)
-                               (display a)) 1)))
+;; (compile (desugar '((lambda (a)
+;;                                (display a)
+;;                                (set! a 2)
+;;                                (display a)
+;;                                (set! a 3)
+;;                                (display a)) 1)))
+(compile (desugar '(let ((x (cons 'a 'b)))
+                     (display (car x))
+                   (display (cdr x)))))
 
 ;; (compile (desugar '((lambda (u) (u u))
 ;;                     (lambda (f) (display 'ok) (f f)))))
