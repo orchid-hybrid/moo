@@ -163,9 +163,6 @@
   (or (pattern? '(lambda _ . _) expr)
       (primitive-value? expr)))
 
-(define prims '(+ - / *  =))
-
-(define (prim? term) (member term prims))
 
 (define (T-k expr k)
   (cond ((aexpr? expr) (k (M expr)))
@@ -246,7 +243,7 @@
          (if (member e bound)
              e
              (if (builtin? e)
-                 `(make-closure ,e (vector))
+                 `(make-closure ,(cdr (assoc e builtins)) (vector))
                  (if (member e globally-bound)
                      (free! free-vars e)
                      (error "out of scope!" e)))))
@@ -364,11 +361,20 @@
 
 ;; Compiler
 
-(define builtins '(cons car cdr null? display halt lt add sub))
-(define (builtin? s) (member s builtins))
+(define builtins '((cons . cons)
+                   (car . car)
+                   (cdr . cdr)
+                   (null? . null?)
+                   (display . display)
+                   (halt . halt)
+                   (< . lt)
+                   (+ . add)
+                   (- . sub)))
+
+(define (builtin? s) (assoc s builtins))
 
 (define (compile form)
-  (let ((bound-variables (append (append prims))))
+  (let ((bound-variables '()))
     
     (display 'compiling) (newline)
     (pretty-print form) (newline)
@@ -519,9 +525,9 @@
                                  (lambda (f) (r (lambda (x) ((f f) x))))))
                               (lambda (f)
                                 (lambda (a b count)
-                                  (if (lt count 0)
+                                  (if (< count 0)
                                       b
-                                      (f (add a b) a (sub count 1))))))
+                                      (f (+ a b) a (- count 1))))))
                              1 0 50))))
 
 ;; (compile (desugar '((lambda (u) (u u))
