@@ -70,33 +70,34 @@ void lt(scm *self) {
 
 void cons(scm *self) {
   scm **env = self->val.closure.environment;
-
   scm *b = gc_alloc_scm(stack_pop());
   scm *a = gc_alloc_scm(stack_pop());
+  scm **cell = gc_alloc(2*sizeof(scm*));
+  cell[0] = a;
+  cell[1] = b;
   scm cont = stack_pop();
-  stack_push((scm){ .typ=scm_type_pair, .val.pair.car=a , .val.pair.cdr=b });
+  stack_push((scm){ .typ=scm_type_pair, .val.cons=cell });
   stack_push(cont);
 }
 
 void car(scm *self) {
   scm **env = self->val.closure.environment;
-
   scm p = stack_pop();
   scm cont = stack_pop();
   assert(p.typ == scm_type_pair);
-  stack_push(*p.val.pair.car);
+  stack_push(*p.val.cons[0]);
   stack_push(cont);
 }
 
 void set_car(scm *self) {
   scm **env = self->val.closure.environment;
-  scm *value = nursery_hold(stack_pop());
-  scm *cell = nursery_hold(stack_pop());
-  scm *cont = nursery_hold(stack_pop());
-  assert(cell->typ == scm_type_pair);
-  cell->val.pair.car = gc_alloc_scm(*value);
+  scm *value = gc_alloc_scm(stack_pop());
+  scm cell = stack_pop();
+  scm cont = stack_pop();
+  assert(cell.typ == scm_type_pair);
+  cell.val.cons[0] = value;
   stack_push((scm){ .typ=scm_type_null});
-  stack_push(*cont);
+  stack_push(cont);
 }
 
 
@@ -106,7 +107,7 @@ void cdr(scm *self) {
   scm p = stack_pop();
   scm cont = stack_pop();
   assert(p.typ == scm_type_pair);
-  stack_push(*p.val.pair.cdr);
+  stack_push(*p.val.cons[1]);
   stack_push(cont);
 }
 

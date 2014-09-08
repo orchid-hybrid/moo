@@ -32,6 +32,9 @@ void init_gc(int set_size) {
 void* gc_alloc_internal(int size, int retry) {
   void *p = alloc_ptr;
   alloc_ptr += size;
+  
+  //printf("GC ALLOC: %d\n", ((alloc_ptr-live_space)*1000)/space_size);
+  
   if(alloc_ptr >= end_ptr) {
     if(retry == 1) {
       fprintf(stderr, "FATAL ERROR: GC LOOP");
@@ -77,6 +80,8 @@ void gc_garbage_collect(void) {
   }
   
   memset(dead_space, 0xFE, space_size);
+  
+  fprintf(stdout, "GARBAGE COLLECTION HAPPENED...\n");
 }
 
 scm* gc_traverse_from(int copy, scm *s) {
@@ -93,7 +98,7 @@ scm* gc_traverse_from(int copy, scm *s) {
   }
   
   if(GC_IN_SPACE(s)) {
-    new_s = gc_alloc(sizeof(scm));
+    new_s = gc_alloc_internal(sizeof(scm),1);
     *new_s = *s;
     s->typ = scm_gc_marked;
     s->val.moved_ptr = new_s;
@@ -107,8 +112,12 @@ scm* gc_traverse_from(int copy, scm *s) {
   case scm_type_null:
     break;
   case scm_type_pair:
-    new_s->val.pair.car = gc_traverse_from(1, new_s->val.pair.car);
-    new_s->val.pair.cdr = gc_traverse_from(1, new_s->val.pair.cdr);
+    tmp = gc_alloc_internal(2*sizeof(scm*),1);
+    tmp[0] = new_s->val.cons[0];
+    tmp[1] = new_s->val.cons[1];
+    new_s->val.cons = tmp;
+    new_s->val.cons[0] = gc_traverse_from(1, new_s->val.cons[0]);
+    new_s->val.cons[1] = gc_traverse_from(1, new_s->val.cons[1]);
     break;
   case scm_type_symbol:
     //printf("SYM: %s\n", get_symbol(new_s->val.symbol_id));
@@ -119,7 +128,7 @@ scm* gc_traverse_from(int copy, scm *s) {
     break;
   case scm_type_procedure:
     //puts("A");
-    tmp = gc_alloc(new_s->val.closure.env_size*sizeof(scm*));
+    tmp = gc_alloc_internal(new_s->val.closure.env_size*sizeof(scm*),1);
     for(i = 0; i < new_s->val.closure.env_size; i++) {
       tmp[i] = new_s->val.closure.environment[i];
     }

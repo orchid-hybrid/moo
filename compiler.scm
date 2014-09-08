@@ -635,7 +635,9 @@
 ;;                                (display a)) 1)))
 (compile (desugar '(let ((x (cons 'a 'b)))
                      (display (car x))
-                   (display (cdr x)))))
+                     (set-car! x 'e)
+                     (display (car x))
+                     (display (cdr x)))))
 
 ;; (compile (desugar '((lambda (u) (u u))
 ;;                     (lambda (f) (display 'ok) (f f)))))

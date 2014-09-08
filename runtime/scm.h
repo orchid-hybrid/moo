@@ -15,12 +15,13 @@ typedef void (*code_ptr)(scm* self);
 struct scm {
   enum scm_type typ;
   union {
-    struct {
+    struct scm** cons;
+    /*struct {
       struct scm *car;
       struct scm *cdr;
-    } pair;
+      } pair;*/
     int symbol_id;
-    int number_value;
+    long long number_value;
     int boolean_value;
     struct {
       code_ptr code;
