@@ -20,13 +20,32 @@ scm bool(int b) {
   return (scm){ .typ=scm_type_boolean, .val.boolean_value=b };
 }
 
-int scm_truep(scm b) {
-  assert(b.typ == scm_type_boolean);
-  return b.val.boolean_value;
+int scm_truep(scm *b) {
+  assert(b->typ == scm_type_boolean);
+  return b->val.boolean_value;
 }
 
 
-void cons(scm **env) {
+
+void debugger_inspect_spaces(int n) {
+  // extremely unsafe
+  
+  int i;
+  
+  for(i = 0; i < n; i++) {
+    printf("%15d -- %15d\n",
+           ((scm*)live_space)[i].typ,
+           ((scm*)dead_space)[i].typ);
+  }
+  puts("");
+  puts("");
+}
+
+
+
+void cons(scm *self) {
+  scm **env = self->val.closure.environment;
+
   scm *b = gc_alloc_scm(stack_pop());
   scm *a = gc_alloc_scm(stack_pop());
   scm cont = stack_pop();
@@ -34,7 +53,9 @@ void cons(scm **env) {
   stack_push(cont);
 }
 
-void car(scm **env) {
+void car(scm *self) {
+  scm **env = self->val.closure.environment;
+
   scm p = stack_pop();
   scm cont = stack_pop();
   assert(p.typ == scm_type_pair);
@@ -42,7 +63,9 @@ void car(scm **env) {
   stack_push(cont);
 }
 
-void cdr(scm **env) {
+void cdr(scm *self) {
+  scm **env = self->val.closure.environment;
+
   scm p = stack_pop();
   scm cont = stack_pop();
   assert(p.typ == scm_type_pair);
@@ -50,7 +73,9 @@ void cdr(scm **env) {
   stack_push(cont);
 }
 
-void null_question(scm **env) {
+void null_question(scm *self) {
+  scm **env = self->val.closure.environment;
+
   scm p = stack_pop();
   scm cont = stack_pop();
   if(p.typ == scm_type_null) {
@@ -68,7 +93,9 @@ scm closure(code_ptr f, int len, scm** env) {
   return (scm){ .typ=scm_type_procedure, .val.closure.code=f , .val.closure.env_size=len, .val.closure.environment = env };
 }
 
-void display(scm **env) {
+// self->val.closure.environment
+void display(scm *self) {
+  scm **env = self->val.closure.environment;
   scm result;
   result = stack_pop();
   if(result.typ == scm_type_number) {
@@ -83,7 +110,7 @@ void display(scm **env) {
   }
 }
 
-void halt(scm **env) {
+void halt(scm *self) {
   exit(0);
 }
 
@@ -92,17 +119,18 @@ void halt(scm **env) {
 int main(void) {
   scm result;
   
-  init_symbol_table(10);
+  init_symbol_table(1);
   init_stack();
-  init_gc(1);
+  init_gc(7);
   
   stack_push(closure(scm_main, 0, NULL));
   
   while(1) {
     sacrifice_children();
-    result = stack_pop(); nursery_hold(result);
+    //debugger_inspect_spaces(50);
+    result = stack_pop();
     if(result.typ == scm_type_procedure) {
-      result.val.closure.code(result.val.closure.environment);
+      result.val.closure.code(nursery_hold(result));
     }
     else {
       puts("wrong type");

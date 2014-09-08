@@ -57,7 +57,7 @@ scm* gc_alloc_scm(scm s) {
 void gc_garbage_collect(void) {
   int i;
   
-  fprintf(stderr, "GARBAGE COLLECTION HAPPENING...");
+  fprintf(stdout, "GARBAGE COLLECTION HAPPENING...\n");
   
   // swap the spaces around
   alloc_ptr = dead_space;
@@ -75,19 +75,18 @@ void gc_garbage_collect(void) {
   for(i = 0; i < nursery_index; i++) {
     gc_traverse_from(0, nursery+i);
   }
-  ///////// THIS IS IS HARD THOUGH TODO
-  // what if something on the stack points to something ont he heap that points to something on the stack
-  // it will try to copy it!
-  // this is really bad.. not sure how to fix.
-  // maybe something ont he heap CANT point to something on the stack?
-  // in that case we only need to solve thsi problem for the nursery
   
   memset(dead_space, 0xFE, space_size);
 }
 
 scm* gc_traverse_from(int copy, scm *s) {
   scm *new_s;
+  scm **tmp;
   int i;
+  
+  #ifdef DEBUG
+  printf("hi type is %d\n", s->typ);
+  #endif
   
   if(s->typ == scm_gc_marked) {
     return s->val.moved_ptr;
@@ -97,8 +96,10 @@ scm* gc_traverse_from(int copy, scm *s) {
     new_s = gc_alloc(sizeof(scm));
     *new_s = *s;
     s->typ = scm_gc_marked;
+    s->val.moved_ptr = new_s;
   }
   else {
+    if(copy) return s; // break infinite loop of heap -> stack -> heap (TODO: is this a real issue?)
     new_s = s;
   }
   
@@ -110,30 +111,49 @@ scm* gc_traverse_from(int copy, scm *s) {
     new_s->val.pair.cdr = gc_traverse_from(1, new_s->val.pair.cdr);
     break;
   case scm_type_symbol:
-    printf("SYM: %s\n", get_symbol(new_s->val.symbol_id));
+    //printf("SYM: %s\n", get_symbol(new_s->val.symbol_id));
     break;
   case scm_type_boolean:
     break;
   case scm_type_procedure:
+    //puts("A");
+    tmp = gc_alloc(new_s->val.closure.env_size*sizeof(scm*));
     for(i = 0; i < new_s->val.closure.env_size; i++) {
-      new_s->val.closure.environment[i] = gc_traverse_from(1, new_s->val.closure.environment[i]);
+      tmp[i] = new_s->val.closure.environment[i];
     }
+    new_s->val.closure.environment = tmp;
+    //puts("B");
+    for(i = 0; i < new_s->val.closure.env_size; i++) {
+      //printf("B%d\n",i);
+      new_s->val.closure.environment[i] = gc_traverse_from(1, new_s->val.closure.environment[i]);
+      #ifdef DEBUG
+      if(!new_s->val.closure.environment[i])
+        puts("NULLED");
+      #endif
+    }
+    //puts("C");
     break;
   default:
     fprintf(stderr, "GC ERROR: Unimplemented type %d\n", new_s->typ);
     exit(0);
   }
   
+  #ifdef DEBUG
+  if(!new_s) puts("GIVING YOU A NULL POINTER");
+  #endif
   return new_s;
 }
 
-void nursery_hold(scm s) {
-  nursery[nursery_index] = s;
+scm* nursery_hold(scm s) {
+  scm* p;
+  p = nursery + nursery_index;
+  *p = s;
   nursery_index++;
   if(nursery_index >= nursery_size) {
     fprintf(stderr, "GC error: nursery ran out of space\n");
     exit(0);
   }
+  return p;
 }
 
 void sacrifice_children(void) {

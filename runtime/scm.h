@@ -10,7 +10,7 @@ enum scm_type {
 };
 
 typedef struct scm scm;
-typedef void (*code_ptr)(scm** env);
+typedef void (*code_ptr)(scm* self);
 
 struct scm {
   enum scm_type typ;
@@ -44,5 +44,5 @@ void init_gc(int set_size);
 void* gc_alloc(int size);
 scm* gc_alloc_scm(scm s);
 void gc_garbage_collect(void);
-void nursery_hold(scm s);
+scm* nursery_hold(scm s);
 void sacrifice_children(void);
