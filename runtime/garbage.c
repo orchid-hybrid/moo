@@ -115,6 +115,8 @@ scm* gc_traverse_from(int copy, scm *s) {
     break;
   case scm_type_boolean:
     break;
+  case scm_type_number:
+    break;
   case scm_type_procedure:
     //puts("A");
     tmp = gc_alloc(new_s->val.closure.env_size*sizeof(scm*));

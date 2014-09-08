@@ -364,7 +364,7 @@
 
 ;; Compiler
 
-(define builtins '(cons car cdr null? display halt))
+(define builtins '(cons car cdr null? display halt lt add sub))
 (define (builtin? s) (member s builtins))
 
 (define (compile form)
@@ -505,14 +505,24 @@
 ;;                              (begin (display (car l)) (s (cdr l)))))))
 ;;                     '(foo bar baz))))
 
-(compile (desugar '(((lambda (r)
-                       ((lambda (f) (f f))
-                        (lambda (f) (r (lambda (x) ((f f) x))))))
-                     (lambda (s)
-                       (lambda (l)
-                         (if (null? l) (display 'end)
-                             (begin (display (car l)) (s (cdr l)))))))
-                    '(foo bar baz quux a b c d e f g h i z e e e e o o u o))))
+;; (compile (desugar '(((lambda (r)
+;;                        ((lambda (f) (f f))
+;;                         (lambda (f) (r (lambda (x) ((f f) x))))))
+;;                      (lambda (s)
+;;                        (lambda (l)
+;;                          (if (null? l) (display 'end)
+;;                              (begin (display (car l)) (s (cdr l)))))))
+;;                     '(foo bar baz quux a b c d e f g h i z e e e e o o u o)))
+
+(compile (desugar '(display (((lambda (r)
+                                ((lambda (f) (f f))
+                                 (lambda (f) (r (lambda (x) ((f f) x))))))
+                              (lambda (f)
+                                (lambda (a b count)
+                                  (if (lt count 0)
+                                      b
+                                      (f (add a b) a (sub count 1))))))
+                             1 0 50))))
 
 ;; (compile (desugar '((lambda (u) (u u))
 ;;                     (lambda (f) (display 'ok) (f f)))))

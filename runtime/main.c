@@ -42,6 +42,31 @@ void debugger_inspect_spaces(int n) {
 }
 
 
+void add(scm *self) {
+  scm b = stack_pop();
+  scm a = stack_pop();
+  scm cont = stack_pop();
+  int n = a.val.number_value + b.val.number_value;
+  stack_push(num(n));
+  stack_push(cont);
+}
+
+void sub(scm *self) {
+  scm b = stack_pop();
+  scm a = stack_pop();
+  scm cont = stack_pop();
+  int n = a.val.number_value - b.val.number_value;
+  stack_push(num(n));
+  stack_push(cont);
+}
+
+void lt(scm *self) {
+  scm b = stack_pop();
+  scm a = stack_pop();
+  scm cont = stack_pop();
+  stack_push(bool(a.val.number_value <  b.val.number_value));
+  stack_push(cont);
+}
 
 void cons(scm *self) {
   scm **env = self->val.closure.environment;
