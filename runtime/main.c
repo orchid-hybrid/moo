@@ -137,7 +137,7 @@ void display(scm *self) {
   scm result;
   result = stack_pop();
   if(result.typ == scm_type_number) {
-    printf("%d\n", result.val.number_value);
+    printf("%lld\n", result.val.number_value);
   }
   else if(result.typ == scm_type_symbol) {
     printf("%s\n", get_symbol(result.val.symbol_id));
