@@ -1,5 +1,12 @@
 ;; Pattern matching
 
+(define (any p l)
+  (if (null? l)
+      #f
+      (if (p (car l))
+          #t
+          (any p (cdr l)))))
+
 (define (conj a b) (lambda (x) (and (a x) (b x))))
 (define (disj a b) (lambda (x) (or (a x) (b x))))
 
@@ -21,6 +28,38 @@
 
 ;; Desugaring macros
 
+(define (def! defsb d body)
+  (let* ((defs (cell-value defsb))
+         (existing (assoc d defs)))
+    (if existing
+        (error "identifier defined multiple times" d)
+        (begin (set-cell! defsb (append defs (list (cons d body))))
+               `(set! ,d (begin ,@body))))))
+
+(define (desugar-body-with-defs ps)
+  (let* ((defs (make-cell '()))
+         (body (map (lambda (x)
+                      (cond ((pattern? `(define ,list? . _) exp)
+                             (let ((name (caadr exp))
+                                   (params (cdadr exp))
+                                   (body (cddr exp)))
+                               (def! defs name `(lambda ,params . ,body))))
+                            ((pattern? `(define ,symbol? . _) x)
+                             (let ((name (cadr x))
+                                   (body (cddr x)))
+                               (def! defs name body)))
+                            (else x)))
+                    ps))
+         (declares (map (lambda (d) `(,(car d) '())) (cell-value defs))))
+    (desugar `(let ,declares
+                ,@body))))
+(define (define? exp) (pattern? '(define . _) exp))
+(define (desugar-body ps)
+  (if (any define? ps)
+      (desugar-body-with-defs ps)
+     (desugar (cons 'begin ps))))
+
+
 (define (desugar exp)
   (cond
    ((pattern? '(set! _ _) exp) `(set! ,(cadr exp) ,(desugar (caddr exp))))
@@ -31,7 +70,7 @@
    ((pattern? '(lambda _ . _) exp)
     (let ((params (cadr exp))
           (body (cddr exp)))
-      `(lambda ,params ,(desugar (cons 'begin body)))))
+      `(lambda ,params ,(desugar-body body))))
 
    ((pattern? `(let ,symbol? ,list? . _) exp)
     (let* ((name (cadr exp))
@@ -57,11 +96,11 @@
                    body
                    `((let* ,(cdr bindings) . ,body)))))))
 
-   ((pattern? `(define _ _ . _) exp)
-    (let ((name (caadr exp))
-	  (params (cdadr exp))
-	  (body (cddr exp)))
-      `(define ,name ,(desugar `(lambda ,params . ,body)))))
+   ;; ((pattern? `(define _ _ . _) exp)
+   ;;  (let ((name (caadr exp))
+   ;;        (params (cdadr exp))
+   ;;        (body (cddr exp)))
+   ;;    `(define ,name ,(desugar `(lambda ,params . ,body)))))
    
    ((pattern? `(if _ _ _) exp)
     (let ((b (cadr exp))
@@ -186,7 +225,7 @@
         ((pattern? '(set! _ _) e)
          (mutable! mvars (cadr e))
          (mut-collect mvars (caddr e)))
-        ((list? e)
+        ((pattern? '(_ . _) e)
          (mut-collect mvars (car e))
          (map (lambda (a) (mut-collect mvars a)) (cdr e)))
         (else '()))
@@ -223,7 +262,7 @@
         ((pattern? '(set! _ _) e)
          (mut-collect mvars e)
          `(set-car! ,(cadr e) ,(mut-conv mvars replace (caddr e))))
-        ((list? e)
+        ((pattern? '(_ . _) e)
          (mut-collect mvars e)
          `(,(mut-conv mvars replace (car e)) ,@(map (lambda (a) (mut-conv mvars replace a)) (cdr e))))
         (else (error "dont know how to mut-conv" e))))
@@ -522,19 +561,20 @@
                    (< . lt)
                    (+ . add)
                    (- . sub)
+                   (= . num_eq)
                    (set-car! . set_car)))
 
 (define (builtin? s) (assoc s builtins))
 
 (define (compile form)
-  (let ((form (cons 'begin form))
+  (let ((form `(let () ,@form))
         (bound-variables '()))
     (display 'compiling) (newline)
     (pretty-print form) (newline)
     (let ((desugared (desugar form)))
       (display 'desugaring) (newline)
-      (pretty-print form) (newline)
-      (let ((mut-form (mut-conv (make-cell '()) '() form)))
+      (pretty-print desugared) (newline)
+      (let ((mut-form (mut-conv (make-cell '()) '() desugared)))
         (display 'mutation-analysis) (newline)
         (pretty-print mut-form) (newline)
         (let ((cps-form (T-c mut-form 'halt)))
@@ -652,9 +692,26 @@
 ;;                                  (lambda (f) (display s) (f f))))
 ;;                     'not-okay)))
 
-(compile (scm-parse-file "test.scm"))
 
-(exit)
+(compile '((define p
+              (lambda (x)
+                (+ 1 (q (- x 1)))))
+            
+            (define q
+              (lambda (y)
+                (if (= 0 y)
+                    0
+                    (+ 1 (p (- y 1))))))
+            
+            (define x (p 5))
+            
+            (define y x)
+            
+            y))
+
+;; (compile (scm-parse-file "test.scm"))
+
+;; (exit)
 
 ;; testing
 
