@@ -34,16 +34,16 @@
     (if existing
         (error "identifier defined multiple times" d)
         (begin (set-cell! defsb (append defs (list (cons d body))))
-               `(set! ,d (begin ,@body))))))
+               `(set! ,d (begin . ,body))))))
 
 (define (desugar-body-with-defs ps)
   (let* ((defs (make-cell '()))
          (body (map (lambda (x)
-                      (cond ((pattern? `(define ,list? . _) exp)
-                             (let ((name (caadr exp))
-                                   (params (cdadr exp))
-                                   (body (cddr exp)))
-                               (def! defs name `(lambda ,params . ,body))))
+                      (cond ((pattern? `(define ,list? . _) x)
+                             (let ((name (caadr x))
+                                   (params (cdadr x))
+                                   (body (cddr x)))
+                               (def! defs name (list `(lambda ,params . ,body)))))
                             ((pattern? `(define ,symbol? . _) x)
                              (let ((name (cadr x))
                                    (body (cddr x)))
@@ -61,7 +61,10 @@
 
 
 (define (desugar exp)
+  (display exp) (newline)
   (cond
+   ((number? exp) exp)
+   
    ((pattern? '(set! _ _) exp) `(set! ,(cadr exp) ,(desugar (caddr exp))))
  
    ((pattern? '(begin . _) exp)
@@ -71,14 +74,6 @@
     (let ((params (cadr exp))
           (body (cddr exp)))
       `(lambda ,params ,(desugar-body body))))
-
-   ((pattern? `(let ,symbol? ,list? . _) exp)
-    (let* ((name (cadr exp))
-           (bindings (caddr exp))
-	   (params (map car bindings))
-	   (values (map cadr bindings))
-	   (body (cdddr exp)))
-      (desugar `((y-combinator (lambda (,name) (lambda ,params . ,body))) . ,values))))
    
    ((pattern? `(let ,list? . _) exp)
     (let* ((bindings (cadr exp))
@@ -152,11 +147,11 @@
     ((pattern? `(,(disj symbol? list?) . _) exp)
      (if (equal? (car exp) 'list)
          (foldl (lambda (x ys)
-                 (list 'cons (desugar x) ys))
-               ''()
-               (cdr exp))
+                  (list 'cons (desugar x) ys))
+                ''()
+                (cdr exp))
          (map desugar exp)))
-    (else exp)))
+    (else (error "desugar" exp))))
 
 (define (quote-desugar term)
   (cond
@@ -567,7 +562,7 @@
 (define (builtin? s) (assoc s builtins))
 
 (define (compile form)
-  (let ((form `(let () ,@form))
+  (let ((form `(let () . ,form))
         (bound-variables '()))
     (display 'compiling) (newline)
     (pretty-print form) (newline)
@@ -693,25 +688,25 @@
 ;;                     'not-okay)))
 
 
-(compile '((define p
-              (lambda (x)
-                (+ 1 (q (- x 1)))))
+;; (compile '((define p
+;;               (lambda (x)
+;;                 (+ 1 (q (- x 1)))))
             
-            (define q
-              (lambda (y)
-                (if (= 0 y)
-                    0
-                    (+ 1 (p (- y 1))))))
+;;             (define q
+;;               (lambda (y)
+;;                 (if (= 0 y)
+;;                     0
+;;                     (+ 1 (p (- y 1))))))
             
-            (define x (p 5))
+;;             (define x (p 5))
             
-            (define y x)
+;;             (define y x)
             
-            y))
+;;             y))
 
-;; (compile (scm-parse-file "test.scm"))
+(compile (scm-parse-file "test.scm"))
 
-;; (exit)
+(exit)
 
 ;; testing
 
