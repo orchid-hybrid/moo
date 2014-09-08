@@ -68,6 +68,14 @@ void lt(scm *self) {
   stack_push(cont);
 }
 
+void num_eq(scm *self) {
+  scm b = stack_pop();
+  scm a = stack_pop();
+  scm cont = stack_pop();
+  stack_push(bool(a.val.number_value == b.val.number_value));
+  stack_push(cont);
+}
+
 void cons(scm *self) {
   scm **env = self->val.closure.environment;
   scm *b = gc_alloc_scm(stack_pop());
