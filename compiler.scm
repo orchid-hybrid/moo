@@ -53,12 +53,13 @@
          (declares (map (lambda (d) `(,(car d) '())) (cell-value defs))))
     (desugar `(let ,declares
                 ,@body))))
+
 (define (define? exp) (pattern? '(define . _) exp))
+
 (define (desugar-body ps)
   (if (any define? ps)
       (desugar-body-with-defs ps)
      (desugar (cons 'begin ps))))
-
 
 (define (desugar exp)
   (cond
@@ -73,7 +74,17 @@
     (let ((params (cadr exp))
           (body (cddr exp)))
       `(lambda ,params ,(desugar-body body))))
-   
+
+   ((pattern? `(letrec ,list? . _) exp)
+    (let* ((bindings (cadr exp))
+         (body (cddr exp))
+         (defs (make-cell '()))
+         (sets (map (lambda (b) (def! defs (car b) `(begin . ,(cdr b)))) bindings))
+         (declares (map (lambda (d) `(,(car d) '())) (cell-value defs))))
+    (desugar `(let ,declares
+                ,@sets
+                ,@body))))
+
    ((pattern? `(let ,list? . _) exp)
     (let* ((bindings (cadr exp))
 	   (params (map car bindings))
@@ -89,12 +100,6 @@
                (if (null? (cdr bindings))
                    body
                    `((let* ,(cdr bindings) . ,body)))))))
-
-   ;; ((pattern? `(define _ _ . _) exp)
-   ;;  (let ((name (caadr exp))
-   ;;        (params (cdadr exp))
-   ;;        (body (cddr exp)))
-   ;;    `(define ,name ,(desugar `(lambda ,params . ,body)))))
    
    ((pattern? `(if _ _ _) exp)
     (let ((b (cadr exp))
@@ -150,7 +155,7 @@
                 ''()
                 (cdr exp))
          (map desugar exp)))
-    (else (error "desugar" exp))))
+    (else  exp))) ;;(error "desugar" exp))))
 
 (define (quote-desugar term)
   (cond
@@ -286,12 +291,6 @@
                          `(if ,aexp
                               ,(T-c thn cont)
                               ,(T-c els cont)))))))
-        ;; ((pattern? '(set! _ _) expr)
-        ;;  (let ((var (cadr expr))
-        ;;        (expr (caddr expr)))
-        ;;    (T-k expr (λ (aexp)
-        ;;                 `(begin (set! ,var ,aexp)
-        ;;                         ,(k ''()))))))
         ((list? expr)
          (let* ((rv (gensym "rv"))
                 (cont `(lambda (,rv) ,(k rv))))
@@ -319,12 +318,6 @@
                                    ,(T-c thn k)
                                    ,(T-c els k)))))
                ,c))))
-        ;; ((pattern? '(set! _ _) expr)
-        ;;  (let ((var (cadr expr))
-        ;;        (expr (caddr expr)))
-        ;;    (T-k expr (λ (aexp)
-        ;;                 `(begin (set! ,var ,aexp)
-        ;;                         (,c '()))))))
         ((list? expr)
          (let ((f (car expr)) (args (cdr expr)))
            (T-k f (lambda (fk)
@@ -372,7 +365,6 @@
            `(if ,(closure-convert globally-bound bound free-vars b)
                 ,(closure-convert globally-bound bound free-vars thn)
                 ,(closure-convert globally-bound bound free-vars els))))
-        ;;((pattern? '(set-car! _ _))  `(set-cell! ,(cadr exp) ,(closure-convert (caddr exp))))
         ((pattern? '(lambda _ _) e)
          (let ((vs (if (list? (cadr e)) (cadr e) (list (cadr e)))) (m (caddr e)))
            ;; lam
@@ -404,7 +396,6 @@
            `(if ,b
                 ,(hoist thn)
                 ,(hoist els))))
-       ;; ((pattern? '(set-cell! _ _)) `(set-cell! ,(cadr exp) ,(hoist (caddr exp))))
         ((pattern? '(lambda _ _) e)
          (let ((vs (cadr e)) (m (caddr e)))
            (hoist! `(lambda ,vs ,(hoist m)))))
@@ -452,10 +443,6 @@
                          (cadr body))
                     ,(c-gen-body (caddr body))
                     ,(c-gen-body (cadddr body)))))
-
-        ;; ((pattern? '(set-cell! _ _)) 
-        ;;  (list `(set-cell! ,(cadr exp) ,(c-gen-body (caddr exp)))))
-
         ((pattern? '(vector-ref env _) body)
          (let ((i (caddr body)))
            (list `(push (ref (* env) ,i)))))
