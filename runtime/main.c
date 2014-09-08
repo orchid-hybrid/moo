@@ -90,14 +90,13 @@ void car(scm *self) {
 
 void set_car(scm *self) {
   scm **env = self->val.closure.environment;
-
-  scm value = nursery_hold(stack_pop());
-  scm cell = nursery_hold(stack_pop());
-  scm cont = stack_pop();
-  assert(p.typ == scm_type_pair);
-  cell->val.pair.car = gc_alloc_scm(value);
-  stack_push(p);
-  stack_push(cont);
+  scm *value = nursery_hold(stack_pop());
+  scm *cell = nursery_hold(stack_pop());
+  scm *cont = nursery_hold(stack_pop());
+  assert(cell->typ == scm_type_pair);
+  cell->val.pair.car = gc_alloc_scm(*value);
+  stack_push((scm){ .typ=scm_type_null});
+  stack_push(*cont);
 }
 
 
