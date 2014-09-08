@@ -61,7 +61,6 @@
 
 
 (define (desugar exp)
-  (display exp) (newline)
   (cond
    ((number? exp) exp)
    
@@ -704,7 +703,15 @@
             
 ;;             y))
 
-(compile (scm-parse-file "test.scm"))
+(define (last l)
+  (if (null? l)
+      #f
+      (if (null? (cdr l))
+          (car l)
+          (last (cdr l)))))
+
+(let ((filename (or (last (command-line-arguments)) "test.scm")))
+  (compile (scm-parse-file filename)))
 
 (exit)
 
