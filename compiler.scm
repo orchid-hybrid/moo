@@ -249,20 +249,18 @@
                 ,(mut-conv mvars replace els))))
         
         ((pattern? '(lambda _ _) e)
-         (let ((vs (if (list? (cadr e)) (cadr e) (list (cadr e))))
-               (m (caddr e)))
+         (let* ((vs (cadr e))
+                (vs-normal (if (list? vs) vs (list vs)))
+                (m (caddr e)))
            (let* ((inner-mut-vars (make-cell '()))
                   (_ (mut-collect inner-mut-vars  m))
-                  (not-shadowed (set-remove replace vs))
+                  (not-shadowed (set-remove replace vs-normal))
                   ;; dont replace vars shadowed by this lambda that aren't mutable
                   (conv-body (mut-conv inner-mut-vars (append not-shadowed
                                                               (cell-value inner-mut-vars)) m))
-                  (boxed-vars (map (lambda (v)
-                                     (if (member v (cell-value inner-mut-vars))
-                                         `(cons ,v '())
-                                         v))
-                                   vs)))
-             (if (equal? 2 boxed-vars)
+                  (boxed-vars (map (lambda (v) `(cons ,v '()))
+                                   (set-intersect vs-normal (cell-value inner-mut-vars)))))
+             (if (equal? '() boxed-vars)
                  `(lambda ,vs ,conv-body)
                  `(lambda ,vs
                     ((lambda ,vs ,conv-body) . ,boxed-vars))))))
