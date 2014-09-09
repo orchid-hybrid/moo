@@ -253,7 +253,10 @@
                (m (caddr e)))
            (let* ((inner-mut-vars (make-cell '()))
                   (_ (mut-collect inner-mut-vars  m))
-                  (conv-body (mut-conv inner-mut-vars (append replace (cell-value inner-mut-vars)) m))
+                  (not-shadowed (set-remove replace vs))
+                  ;; dont replace vars shadowed by this lambda that aren't mutable
+                  (conv-body (mut-conv inner-mut-vars (append not-shadowed
+                                                              (cell-value inner-mut-vars)) m))
                   (boxed-vars (map (lambda (v)
                                      (if (member v (cell-value inner-mut-vars))
                                          `(cons ,v '())
