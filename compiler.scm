@@ -51,8 +51,7 @@
                             (else x)))
                     ps))
          (declares (map (lambda (d) `(,(car d) '())) (cell-value defs))))
-    (desugar `(let ,declares
-                ,@body))))
+    (desugar `(let ,declares . ,body))))
 
 (define (define? exp) (pattern? '(define . _) exp))
 
@@ -79,12 +78,19 @@
     (let* ((bindings (cadr exp))
          (body (cddr exp))
          (defs (make-cell '()))
-         (sets (map (lambda (b) (def! defs (car b) `(begin . ,(cdr b)))) bindings))
+         (sets (map (lambda (b) (def! defs (car b) (cdr b))) bindings))
          (declares (map (lambda (d) `(,(car d) '())) (cell-value defs))))
-    (desugar `(let ,declares
-                ,@sets
-                ,@body))))
+    (desugar `(let ,declares . ,(append sets body)))))
 
+   ((pattern? `(let ,symbol? ,list? . _) exp)
+    (let* ((name (cadr exp))
+	   (bindings (caddr exp))
+           (params (map car bindings))
+	   (values (map cadr bindings))
+	   (body (cdddr exp)))
+      (desugar `(letrec ((,name (lambda ,params . ,body)))
+                  (,name . ,values)))))
+   
    ((pattern? `(let ,list? . _) exp)
     (let* ((bindings (cadr exp))
 	   (params (map car bindings))
@@ -206,7 +212,7 @@
 
 (define (mut-collect mvars e)
   (cond ((pattern? '(begin . _) e)
-         `(begin ,@(map (lambda (se) (mut-collect mvars se)) (cdr e))))
+         `(begin . ,(map (lambda (se) (mut-collect mvars se)) (cdr e))))
         ((pattern? '(if _ _ _) e)
          (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
            (mut-collect mvars b)
@@ -234,7 +240,7 @@
   (cond ((symbol? e) (if (member e replace) `(car ,e) e))
         ((primitive-value? e) e)
         ((pattern? '(begin . _) e)
-         `(begin ,@(map (lambda (se) (mut-conv mvars replace se)) (cdr e))))
+         `(begin . ,(map (lambda (se) (mut-conv mvars replace se)) (cdr e))))
         ((pattern? '(if _ _ _) e)
          (mut-collect mvars e)
          (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
@@ -256,14 +262,13 @@
              (if (equal? 2 boxed-vars)
                  `(lambda ,vs ,conv-body)
                  `(lambda ,vs
-                    ((lambda ,vs ,conv-body)
-                    ,@boxed-vars))))))
+                    ((lambda ,vs ,conv-body) . ,boxed-vars))))))
         ((pattern? '(set! _ _) e)
          (mut-collect mvars e)
          `(set-car! ,(cadr e) ,(mut-conv mvars replace (caddr e))))
         ((pattern? '(_ . _) e)
          (mut-collect mvars e)
-         `(,(mut-conv mvars replace (car e)) ,@(map (lambda (a) (mut-conv mvars replace a)) (cdr e))))
+         `(,(mut-conv mvars replace (car e)) . ,(map (lambda (a) (mut-conv mvars replace a)) (cdr e))))
         (else (error "dont know how to mut-conv" e))))
 
 
