@@ -99,6 +99,25 @@
       (equal? #\< c)
       (equal? #\> c)))
 
+(define (numeric? n)
+  (or (equal? #\0 c)
+      (equal? #\1 c)
+      (equal? #\2 c)
+      (equal? #\3 c)
+      (equal? #\4 c)
+      (equal? #\5 c)
+      (equal? #\6 c)
+      (equal? #\7 c)
+      (equal? #\8 c)
+      (equal? #\9 c)))
+
+(define (numeric-value n)
+  (case n
+    ((#\0) 0)
+    ((#\1) 1) ((#\2) 2) ((#\3) 3)
+    ((#\4) 4) ((#\5) 5) ((#\6) 6)
+    ((#\7) 7) ((#\8) 8) ((#\9) 9)))
+
 (define (skip-whitespace stream)
   (if (whitespace? (peek-char stream))
       (begin (read-char stream)

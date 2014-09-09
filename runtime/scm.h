@@ -3,8 +3,10 @@ enum scm_type {
   scm_type_pair,
   scm_type_symbol,
   scm_type_boolean,
+  scm_type_char,
   scm_type_number,
   scm_type_procedure,
+  scm_type_string,
   
   scm_gc_marked,
 };
@@ -22,12 +24,14 @@ struct scm {
       } pair;*/
     int symbol_id;
     long long number_value;
+    char char_value;
     int boolean_value;
     struct {
       code_ptr code;
       int env_size;
       struct scm **environment;
     } closure;
+    char *string_value;
     
     struct scm *moved_ptr;
   } val;

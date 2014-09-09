@@ -441,6 +441,7 @@
   (cond ((symbol? body) (list `(push (* ,body))))
         ((number? body) (list `(push (make-number ,body))))
         ((boolean? body) (list `(push ,body)))
+        ((string? body) (list `(push (make-string ,body))))
         ((pattern? `(quote ,symbol?) body)
          (list `(push (make-symbol ,(symbol->string (cadr body))))))
         ((pattern? `(quote ,(disj null? (disj number? (disj boolean? string?)))) body)
@@ -476,7 +477,7 @@
                (arguments (cddr body)))
            (append (concat (map c-gen-body arguments))
                    (c-gen-body continuation))))
-        (else (display (list 'c-gen-body body)) (newline)
+        (else (display (list 'c-gen-body body (pretty-print body))) (newline)
               (error "error in c-gen-body"))))
 
 ;; emit c
@@ -503,7 +504,8 @@
          
          )
         ((pattern? '(if _ _ _) exp)
-         ((formatter "if (scm_truep(" ~e ")) {" ~% (~@ ~e ~%) "} else {" ~% (~@ ~e ~%) "}" ~%)
+         ((formatter "if (" ~a "(" ~e ")) {" ~% (~@ ~e ~%) "} else {" ~% (~@ ~e ~%) "}" ~%)
+          (if (symbol? (cadr exp)) "scm_truepstar" "scm_truep")
           (cadr exp) (caddr exp) (cadddr exp)))
         ((pattern? '(pop) exp)
          ((formatter "stack_pop()")))
@@ -525,6 +527,8 @@
          ((formatter "gc_alloc_scm(" ~e ")") (cadr exp)))
         ((pattern? '(make-symbol _) exp)
          ((formatter "sym(" ~e ")") (cadr exp)))
+        ((pattern? '(make-string _) exp)
+         ((formatter "str_alloc(" ~e ")") (cadr exp)))
         ((pattern? '(make-number _) exp)
          ((formatter "num(" ~e ")") (cadr exp)))
         ((pattern? '(set! _ _) exp)
@@ -541,53 +545,69 @@
 
 ;; Compiler
 
-(define builtins '((cons . cons)
-                   (car . car)
-                   (cdr . cdr)
-                   (null? . null?)
-                   (display . display)
-                   (halt . halt)
-                   (< . lt)
-                   (+ . add)
-                   (- . sub)
-                   (= . num_eq)
-                   (set-car! . set_car)))
+(define (prepare-builtins l)
+  (map (lambda (b)
+         (if (pair? b) b (cons b b))) l))
+
+(define builtins (prepare-builtins
+                  '(halt
+                    
+                    null? pair? char? string? boolean?
+                    number? procedure? symbol?
+                    
+                    eq?
+                    
+                    cons car cdr
+                    (set-car! . set_car) (set-cdr! . set_cdr)
+                    
+                    (char->string . char_to_string)
+                    (number->string . number_to_string)
+                    (symbol->string . symbol_to_string)
+                    
+                    string-append
+                    (put-string . putstring)
+                    
+                    (= . num_eq)
+                    (< . lt) (> . lt)
+                    (+ . add) (- . sub)
+                    )))
 
 (define (builtin? s) (assoc s builtins))
 
-(define (compile form)
+(define (compile form debug)
   (let ((form `(let () . ,form))
         (bound-variables '()))
     (display 'compiling) (newline)
-    (pretty-print form) (newline)
+    (when debug (pretty-print form) (newline))
     (let ((desugared (desugar form)))
       (display 'desugaring) (newline)
-      (pretty-print desugared) (newline)
+      (when debug (pretty-print desugared) (newline))
       (let ((mut-form (mut-conv (make-cell '()) '() desugared)))
         (display 'mutation-analysis) (newline)
-        (pretty-print mut-form) (newline)
+        (when debug (pretty-print mut-form) (newline))
         (let ((cps-form (T-c mut-form 'halt)))
           (display 'cps) (newline)
-          (pretty-print cps-form) (newline)
+          (when debug (pretty-print cps-form) (newline))
           (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
             (display 'cc) (newline)
-            (pretty-print cc-form) (newline)
+            (when debug (pretty-print cc-form) (newline))
             (let ((hoisted-form (hoist cc-form)))
               (display 'hoist) (newline)
-              (for-each (lambda (i)
-                          (pretty-print `(define ,(car i) ,(cdr i))))
-                        lambdas) (newline)
-                        (pretty-print hoisted-form) (newline)
+              (when debug 
+                    (for-each (lambda (i)
+                                (pretty-print `(define ,(car i) ,(cdr i))))
+                              lambdas) (newline)
+                              (pretty-print hoisted-form) (newline))
                         (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
                               (c-code-body (c-gen-body hoisted-form)))
                           (display 'c-gen) (newline)
-                          (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
-                          (pretty-print c-code-body) (newline)
+                          (when debug (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
+                                (pretty-print c-code-body) (newline))
                           (let ((c-string ((formatter (~@ ~e ~%) ~e)
                                            c-codes `(define-code scm-main . ,c-code-body))))
                             (display 'emit-c) (newline)
-                            (display c-string)
-                            (newline)
+                            (when debug (display c-string)
+                                  (newline))
                             (with-output-to-file "moo.c"
                               (lambda ()
                                 (display c-string) (newline)))
@@ -706,7 +726,9 @@
           (last (cdr l)))))
 
 (let ((filename (or (last (command-line-arguments)) "test.scm")))
-  (compile (scm-parse-file filename)))
+  (compile (append (scm-parse-file "prelude.scm")
+                   (scm-parse-file filename))
+           #f))
 
 (exit)
 

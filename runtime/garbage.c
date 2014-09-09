@@ -86,7 +86,7 @@ void gc_garbage_collect(void) {
 
 scm* gc_traverse_from(int copy, scm *s) {
   scm *new_s;
-  scm **tmp;
+  scm **tmp; int len; char *s_space;
   int i;
   
   #ifdef DEBUG
@@ -124,6 +124,8 @@ scm* gc_traverse_from(int copy, scm *s) {
     break;
   case scm_type_boolean:
     break;
+  case scm_type_char:
+    break;
   case scm_type_number:
     break;
   case scm_type_procedure:
@@ -142,7 +144,13 @@ scm* gc_traverse_from(int copy, scm *s) {
         puts("NULLED");
       #endif
     }
-    //puts("C");
+    break;
+  case scm_type_string:
+    len = strlen(new_s->val.string_value);
+    s_space = gc_alloc(len);
+    strncpy(s_space, new_s->val.string_value, len);
+    new_s->val.string_value = s_space;
+    
     break;
   default:
     fprintf(stderr, "GC ERROR: Unimplemented type %d\n", new_s->typ);
