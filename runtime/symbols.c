@@ -21,12 +21,15 @@ int intern_symbol(char *name) {
     symbols_allocated_size *= 2;
     symbols = realloc(symbols, symbols_allocated_size*sizeof(char*));
   }
-  symbols[symbols_count] = name;
+  //symbols[symbols_count] = name;
+  symbols[symbols_count] = malloc(strlen(name)+1);
+  strcpy(symbols[symbols_count], name);
   symbols_count++;
   
   return symbols_count-1;
 }
 
 char *get_symbol(int i) {
+  assert(i >= 0 && i < symbols_count);
   return symbols[i];
 }

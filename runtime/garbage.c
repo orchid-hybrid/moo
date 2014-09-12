@@ -147,8 +147,8 @@ scm* gc_traverse_from(int copy, scm *s) {
     break;
   case scm_type_string:
     len = strlen(new_s->val.string_value);
-    s_space = gc_alloc(len);
-    strncpy(s_space, new_s->val.string_value, len);
+    s_space = gc_alloc(len+1);
+    strcpy(s_space, new_s->val.string_value);
     new_s->val.string_value = s_space;
     
     break;

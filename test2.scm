@@ -5,6 +5,6 @@
 ((y
   (lambda (s)
     (lambda (l)
-      (if (null? l) (display 'end)
-          (begin (display (car l)) (s (cdr l)))))))
+      (if (null? l) (put-string 'end)
+          (begin (put-string (car l)) (s (cdr l)))))))
  '(foo bar baz quux a b c d e f g h i z e e e e o o u o))

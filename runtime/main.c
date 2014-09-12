@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "scm.h"
@@ -13,7 +14,7 @@ scm sym(char *n) {
 }
 
 scm str_alloc(char *s) {
-  int len = strlen(s);
+  int len = strlen(s)+1;
   char *s_space = gc_alloc(len);
   strncpy(s_space, s, len);
   return (scm){ .typ=scm_type_string, .val.string_value=s_space };
@@ -274,7 +275,8 @@ void string_append(scm *self) {
   scm cont = stack_pop();
   s1_len = strlen(s1.val.string_value);
   s2_len = strlen(s2.val.string_value);
-  app = malloc(s1_len+s2_len); // TODO speed this up by building the string manually rather than calling str_alloc
+  app = malloc(s1_len+s2_len+1); // TODO speed this up by building the string manually rather than calling str_alloc
+  app[s1_len+s2_len] = '\0';
   strncpy(app, s1.val.string_value, s1_len);
   strncpy(app+s1_len, s2.val.string_value, s2_len);
   assert(s1.typ == scm_type_string);
