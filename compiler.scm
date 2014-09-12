@@ -441,14 +441,15 @@
       (c-gen-pop-args (cons `(declare scm* ,(car args) (hold (pop))) acc) (cdr args))))
 
 (define (c-gen-body body)
-  (cond ((symbol? body) (list `(push (* ,body))))
+  (cond ((null? body) (list `(push (make-nil))))
+        ((symbol? body) (list `(push (* ,body))))
         ((number? body) (list `(push (make-number ,body))))
         ((boolean? body) (list `(push ,body)))
         ((string? body) (list `(push (make-string ,body))))
         ((pattern? `(quote ,symbol?) body)
          (list `(push (make-symbol ,(symbol->string (cadr body))))))
         ((pattern? `(quote ,(disj null? (disj number? (disj boolean? string?)))) body)
-         (list `(push ,(cadr body))))
+         (c-gen-body (cadr body)))
         ((pattern? '(if _ _ _) body)
          (list `(if ,(if (pattern? '(vector-ref env _) (cadr body))
                          `(* ,(cadr body))
@@ -528,6 +529,8 @@
          ((formatter "gc_alloc(" ~e "*sizeof(scm*) + " ~e "*sizeof(scm))") (cadr exp) (cadr exp)))
         ((pattern? '(gc-alloc-scm _) exp)
          ((formatter "gc_alloc_scm(" ~e ")") (cadr exp)))
+        ((pattern? '(make-nil) exp)
+         ((formatter "(scm){ .typ=scm_type_null }")))
         ((pattern? '(make-symbol _) exp)
          ((formatter "sym(" ~e ")") (cadr exp)))
         ((pattern? '(make-string _) exp)
@@ -729,9 +732,9 @@
           (last (cdr l)))))
 
 (let ((filename (or (last (command-line-arguments)) "test.scm")))
-  (compile (append (scm-parse-file "prelude.scm")
+  (compile (append '(); (scm-parse-file "prelude.scm")
                    (scm-parse-file filename))
-           #f))
+           #t))
 
 (exit)
 
