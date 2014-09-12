@@ -287,16 +287,14 @@
         ((pattern? '(begin _ . _) expr)
          (T-k (cadr expr) (lambda (_)
                             (T-k `(begin . ,(cddr expr)) k))))
+
         ((pattern? '(if _ _ _) expr)
-         (let* ((rv (gensym "rv"))
-                (cont `(lambda (,rv) ,(k rv))))
-           (let ((bool (cadr expr))
-                 (thn (caddr expr))
-                 (els (cadddr expr)))
-             (T-k bool (lambda (aexp)
-                         `(if ,aexp
-                              ,(T-c thn cont)
-                              ,(T-c els cont)))))))
+                                        ; We have to reify the cont to avoid
+                                        ; a possible code blow-up:
+         (define $rv (gensym '$rv))
+         (define cont `(lambda(,$rv) ,(k $rv)))
+         (T-c expr cont))
+
         ((list? expr)
          (let* ((rv (gensym "rv"))
                 (cont `(lambda (,rv) ,(k rv))))
@@ -313,17 +311,24 @@
         ((pattern? '(begin _ . _) expr)
          (T-k (cadr expr) (lambda (_)
                             (T-c `(begin . ,(cddr expr)) c))))
+
+
         ((pattern? '(if _ _ _) expr)
          (let* ((k (gensym "k")))
            (let ((bool (cadr expr))
                  (thn (caddr expr))
                  (els (cadddr expr)))
-             `((lambda (,k)
-                 ,(T-k bool (lambda (aexp)
-                              `(if ,aexp
-                                   ,(T-c thn k)
-                                   ,(T-c els k)))))
-               ,c))))
+
+             (define (if-form v)
+               (T-k bool (lambda (aexp)
+                             `(if ,aexp 
+                                  ,(T-c thn v)
+                                  ,(T-c els v)))))
+             (if (symbol? c)
+                 (if-form c)
+                 (let (($k (gensym '$k)))
+                   `((lambda (,$k) ,(if-form $k)) ,c))))))
+
         ((list? expr)
          (let ((f (car expr)) (args (cdr expr)))
            (T-k f (lambda (fk)

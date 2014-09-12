@@ -1,1 +1,1 @@
-(display 'x)
+(map display '(a b c))
