@@ -1,3 +1,4 @@
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -376,7 +377,9 @@ void halt(scm *self) {
 
 int main(void) {
   scm result;
-  
+
+  srand(time(NULL)); 
+
   init_symbol_table(1);
   init_stack();
   init_gc(50000);
