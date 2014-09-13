@@ -217,14 +217,41 @@ void eq_question(scm *self) {
   scm v2 = stack_pop();
   
   scm cont = stack_pop();
-  if(0) { // TODO IMPLEMENT THIS
-    stack_push(bool(1));
+  if(v1.typ == v2.typ) {
+    if(v1.typ == scm_type_null) {
+      stack_push(bool(1));
+    }
+    //if(v1.typ == scm_type_pair) {
+    // TODO
+    //}
+    else if(v1.typ == scm_type_symbol &&
+       v1.val.symbol_id == v2.val.symbol_id) {
+      stack_push(bool(1));
+    }
+    else if(v1.typ == scm_type_boolean &&
+       v1.val.boolean_value == v2.val.boolean_value) {
+      stack_push(bool(1));
+    }
+    else if(v1.typ == scm_type_char &&
+       v1.val.char_value == v2.val.char_value) {
+      stack_push(bool(1));
+    }
+    else if(v1.typ == scm_type_number &&
+       v1.val.number_value == v2.val.number_value) {
+      stack_push(bool(1));
+    }
+    else if(v1.typ == scm_type_string &&
+            !strcmp(v1.val.string_value,v2.val.string_value)) {
+      stack_push(bool(1));
+    }
+    else {
+      stack_push(bool(0));
+    }
   }
   else {
     stack_push(bool(0));
   }
   stack_push(cont);
-
 }
 
 

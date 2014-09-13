@@ -24,8 +24,8 @@ struct scm {
       } pair;*/
     int symbol_id;
     long long number_value;
-    char char_value;
     int boolean_value;
+    char char_value;
     struct {
       code_ptr code;
       int env_size;
