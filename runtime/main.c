@@ -38,14 +38,22 @@ scm closure(code_ptr f, int len, scm** env) {
 }
 
 int scm_truep(scm b) {
-  assert(b.typ == scm_type_boolean);
-  return b.val.boolean_value;
+  //  assert(b.typ == scm_type_boolean);
+  if(b.typ == scm_type_boolean) {
+    return b.val.boolean_value;
+  } else {
+    return 1;
+  }
 }
 
 int scm_truepstar(scm *b) {
   //  printf("%d\n", b->typ);
-  assert(b->typ == scm_type_boolean);
-  return b->val.boolean_value;
+  //assert(b->typ == scm_type_boolean);
+  if(b->typ == scm_type_boolean) {
+    return b->val.boolean_value;
+  } else {
+    return 1;
+  }
 }
 
 

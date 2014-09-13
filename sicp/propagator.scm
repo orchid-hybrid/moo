@@ -101,13 +101,13 @@
           ((and (has-value? a1) 
                 (has-value? sum))
            (set-value! a2
-                       (- (get-value sum)
+                       (- (get-value sum) 
                           (get-value a1))
                        me))
           ((and (has-value? a2) 
                 (has-value? sum))
            (set-value! a1
-                       (- (get-value sum)
+                       (- (get-value sum) 
                           (get-value a2))
                        me))))
   (define (process-forget-value)
@@ -139,7 +139,7 @@
                        (* (get-value m1) 
                           (get-value m2))
                        me))
-          ((and (has-value? product)
+          ((and (has-value? product) 
                 (has-value? m1))
            (set-value! m2
                        (/ (get-value product) 
@@ -150,7 +150,8 @@
            (set-value! m1
                        (/ (get-value product) 
                           (get-value m2))
-                       me))))
+                       me))
+          (else (display "foo"))))
   (define (process-forget-value)
     (forget-value! product me)
     (forget-value! m1 me)
@@ -203,8 +204,9 @@
 (define F (make-connector))
 (celsius-fahrenheit-converter C F)
 
-(probe "Celsius temp" C)
 (probe "Fahrenheit temp" F)
+
+(probe "Celsius temp" C)
 
 (set-value! C 25 'user)
 (newline)
