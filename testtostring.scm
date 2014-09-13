@@ -7,15 +7,16 @@
    ((number? obj) (number->string obj))
    ((symbol? obj) (symbol->string obj))
    ((null? obj) "()")
-   ((list? obj) (foldl string-append "(" (append
-                                          (list (foldl (lambda (m c) (string-append m " " (tostring2 c)))
-                                                       (tostring2 (car obj))
-                                                       (cdr obj)))
+   ((list? obj) (foldl string-append "(" (cons
+                                           (foldl (lambda (m c) (string-append (string-append m) " " (tostring2 c)))
+                                                    (tostring2 (car obj))
+                                                    (cdr obj))
                                           
                                           (cons ")" '()))))
    ((pair? obj) (foldl string-append "(" (cons (tostring2 (car obj))
                                                (cons " . "
                                                      (cons (tostring2 (cdr obj))
-                                                           (cons ")" '()))))))))
+                                                           (cons ")" '()))))))
+   (else "??????")))
 
 (display (tostring2 '(a b c)))
