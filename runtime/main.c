@@ -42,7 +42,7 @@ int scm_truep(scm b) {
 }
 
 int scm_truepstar(scm *b) {
-  printf("%d\n", b->typ);
+  //  printf("%d\n", b->typ);
   assert(b->typ == scm_type_boolean);
   return b->val.boolean_value;
 }

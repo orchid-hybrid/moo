@@ -17,7 +17,7 @@
               constraints))
             ((not (= value newval))
              (error (cons "Contradiction" 
-                    (list value newval))))
+                          (list value newval))))
             (else 'ignored)))
     (define (forget-my-value retractor)
       (if (eq? retractor informant)
@@ -47,7 +47,7 @@
              forget-my-value)
             ((eq? request 'connect) connect)
             (else (error (cons "Unknown operation: CONNECTOR"
-                         request)))))
+                               request)))))
     me))
 
 (define (for-each-except exception 
@@ -101,13 +101,13 @@
           ((and (has-value? a1) 
                 (has-value? sum))
            (set-value! a2
-                       (- (get-value sum) 
+                       (- (get-value sum)
                           (get-value a1))
                        me))
           ((and (has-value? a2) 
                 (has-value? sum))
            (set-value! a1
-                       (- (get-value sum) 
+                       (- (get-value sum)
                           (get-value a2))
                        me))))
   (define (process-forget-value)
@@ -139,7 +139,7 @@
                        (* (get-value m1) 
                           (get-value m2))
                        me))
-          ((and (has-value? product) 
+          ((and (has-value? product)
                 (has-value? m1))
            (set-value! m2
                        (/ (get-value product) 
@@ -163,7 +163,7 @@
            (process-forget-value))
           (else
            (error (cons "Unknown request: MULTIPLIER" 
-                  request)))))
+                        request)))))
   (connect m1 me)
   (connect m2 me)
   (connect product me)
