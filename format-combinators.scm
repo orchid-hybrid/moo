@@ -84,7 +84,9 @@
 (define (formatter . formatters)
   (let ((fmtr (foldl (lambda (m c)
                        (cond ((procedure? c) (c m))
-                             ((string? c) (lambda (ss me) (m ss (string-append me c))))))
+                             ((string? c) (lambda (ss me)
+                                            (display c)
+                                            (m ss "")))))
                      (lambda (ss m) (if (null? ss) m (error "format given too many args")))
                      (reverse formatters))))
     (lambda ss (fmtr ss ""))))
@@ -94,12 +96,14 @@
     (lambda (ss m)
       (if (null? ss)
           (error "format given too few args")
-          (k (cdr ss) (string-append m (format-fn (car ss))))))))
+          (begin (display (format-fn (car ss)))
+                 (k (cdr ss) ""))))))
 
 (define ~%
   (lambda (k)
       (lambda (ss m)
-        (k ss (string-append m "\n")))))
+        (display "\n")
+        (k ss ""))))
 
 (define (~@ . formatters)
   (let ((f (apply formatter ~a formatters)))
