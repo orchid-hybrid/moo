@@ -558,6 +558,8 @@
 (define builtins (prepare-builtins
                   '(halt
                     (exit . scm_exit)
+
+                    (random . scm_random)
                     
                     null? pair? char? string? boolean?
                     number? procedure? symbol?
@@ -573,9 +575,10 @@
                     
                     string-append
                     (put-string . putstring)
+                    newline
                     
                     (= . num_eq)
-                    (< . lt) (> . lt)
+                    (< . lt) (> . gt)
                     (+ . add) (- . sub) (* . mul) (/ . divd)
                     )))
 

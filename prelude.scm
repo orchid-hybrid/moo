@@ -102,7 +102,7 @@
 
 (define (error e)
   (display (tostring e))
-  (display "\n")
+  (newline)
   (exit))
 
 
@@ -133,7 +133,5 @@
                                                            (cons ")" '()))))))))
 (define (display obj)
   (put-string (tostring obj)))
-
-(define (newline) (display "\n"))
 
 

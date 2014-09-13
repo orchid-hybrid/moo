@@ -28,7 +28,10 @@
          (make-tree
           (entry set)
           (left-branch set)
-          (adjoin-set x (right-branch set))))))
+          (adjoin-set x (right-branch set))))
+        (else
+         (display (cons x (entry set))) (display ",")
+         (error "dunno wat to do"))))
 
 (define (tree->list-1 tree)
   (if (null? tree)
@@ -52,9 +55,15 @@
                 result-list)))))
   (copy-to-list tree '()))
 
-(define (adjoin-list lst set)
+(define (adjoin-list lst st)
   (if (null? lst)
-      set
-      (adjoin-list (cdr lst) (adjoin-set (car lst) set))))
+      st
+      (adjoin-list (cdr lst) (adjoin-set (car lst) st))))
 
-(display (tree->list-2 (adjoin-list '(5 1 7) '())))
+(define (generate-list fn size init)
+  (if (< size 0)
+      init
+      (generate-list fn (- size 1) (cons (fn) init))))
+
+(display (tree->list-2 (foldr adjoin-set '() (generate-list random 12 '()))))
+(newline)

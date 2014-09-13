@@ -109,6 +109,21 @@ void lt(scm *self) {
   stack_push(cont);
 }
 
+void gt(scm *self) {
+  scm b = stack_pop();
+  scm a = stack_pop();
+  scm cont = stack_pop();
+  stack_push(bool(a.val.number_value >  b.val.number_value));
+  stack_push(cont);
+}
+
+void scm_random(scm *self) {
+  scm cont = stack_pop();
+  stack_push(num(rand()));
+  stack_push(cont);
+}
+
+
 void num_eq(scm *self) {
   scm b = stack_pop();
   scm a = stack_pop();
@@ -281,6 +296,10 @@ void putstring(scm *self) {
     puts("FAIL");
     printf("<type: %d>\n", result.typ);
   }
+}
+
+void newline(scm *self) {
+  puts("");
 }
 
 
