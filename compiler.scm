@@ -636,8 +636,8 @@
     (compile (append (if debug
                          '()
                          (append (scm-parse-file "prelude.scm")
-                                 (scm-parse-file "set.scm")
-                                 (scm-parse-file "gensym.scm")))
+                                 (append (scm-parse-file "set.scm")
+                                         (scm-parse-file "gensym.scm"))))
                      (scm-parse-file filename))
              debug)))
 
