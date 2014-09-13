@@ -1,4 +1,3 @@
-(define (put-string e) e)
 (define (f x)
   (if (null? x) #f (begin (put-string (car x)) (f (cdr x)))))
 (let loop ()

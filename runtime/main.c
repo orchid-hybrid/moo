@@ -124,7 +124,6 @@ void car(scm *self) {
 }
 
 void set_car(scm *self) {
-  scm **env = self->val.closure.environment;
   scm *value = gc_alloc_scm(stack_pop());
   scm cell = stack_pop();
   scm cont = stack_pop();
@@ -276,7 +275,7 @@ void string_append(scm *self) {
   scm **env = self->val.closure.environment;
   scm s2 = stack_pop();
   scm s1 = stack_pop();
-  scm cont = stack_pop();
+  scm *cont = nursery_hold(stack_pop());
   s1_len = strlen(s1.val.string_value);
   s2_len = strlen(s2.val.string_value);
   app = malloc(s1_len+s2_len+1); // TODO speed this up by building the string manually rather than calling str_alloc
@@ -287,7 +286,7 @@ void string_append(scm *self) {
   assert(s2.typ == scm_type_string);
   stack_push(str_alloc(app));
   free(app);
-  stack_push(cont);
+  stack_push(*cont);
 }
 
 void halt(scm *self) {
