@@ -118,9 +118,15 @@
    ((number? obj) (number->string obj))
    ((symbol? obj) (symbol->string obj))
    ((null? obj) "()")
-   ((list? obj) (foldl string-append "(" (append
-                                          (map (lambda (s) (string-append (tostring s) " ")) obj)
-                                          (cons ")" '()))))
+   ((list? obj)
+    (foldl
+     string-append
+     "("
+     (append
+      (list (foldl (lambda (m c) (string-append m (string-append " " (tostring c))))
+                   (tostring (car obj))
+                   (cdr obj)))
+      (cons ")" '()))))
    ((pair? obj) (foldl string-append "(" (cons (tostring (car obj))
                                                (cons " . "
                                                      (cons (tostring (cdr obj))
