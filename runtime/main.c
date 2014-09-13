@@ -276,6 +276,9 @@ void string_append(scm *self) {
   scm s2 = stack_pop();
   scm s1 = stack_pop();
   scm *cont = nursery_hold(stack_pop());
+
+  assert(s1.typ == scm_type_string);
+  assert(s2.typ == scm_type_string);
   s1_len = strlen(s1.val.string_value);
   s2_len = strlen(s2.val.string_value);
   app = malloc(s1_len+s2_len+1); // TODO speed this up by building the string manually rather than calling str_alloc
