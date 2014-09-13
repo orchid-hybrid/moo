@@ -575,7 +575,7 @@
                     
                     (= . num_eq)
                     (< . lt) (> . lt)
-                    (+ . add) (- . sub)
+                    (+ . add) (- . sub) (* . mul) (/ . divd)
                     )))
 
 (define (builtin? s) (assoc s builtins))
