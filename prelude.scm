@@ -77,6 +77,8 @@
       '()
       (cons (fn (car lst)) (map fn (cdr lst)))))
 
+(define (member elt l)
+  (if (null? l) #f (if (equal? elt (car l)) #t (member elt (cdr l)))))
 
 
 ;; EQUAL
