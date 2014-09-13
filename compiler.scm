@@ -609,8 +609,9 @@
                           (display 'c-gen) (newline)
                           (when debug (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
                                 (pretty-print c-code-body) (newline))
-                          (let ((c-string ((formatter (~@ ~e ~%) ~e)
-                                           c-codes `(define-code scm-main . ,c-code-body))))
+                          (let ((c-string (with-output-to-string
+                                            (lambda () ((formatter (~@ ~e ~%) ~e)
+                                                        c-codes `(define-code scm-main . ,c-code-body))))))
                             (display 'emit-c) (newline)
                             (when debug (display c-string)
                                   (newline))
