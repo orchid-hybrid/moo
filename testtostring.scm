@@ -8,8 +8,8 @@
    ((symbol? obj) (symbol->string obj))
    ((null? obj) "()")
    ((list? obj) (foldl string-append "(" (append
-                                          (list (foldl (lambda (m c) (string-append m " " (tostring c)))
-                                                       (tostring (car obj))
+                                          (list (foldl (lambda (m c) (string-append m " " (tostring2 c)))
+                                                       (tostring2 (car obj))
                                                        (cdr obj)))
                                           
                                           (cons ")" '()))))
