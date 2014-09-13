@@ -57,3 +57,15 @@
 (define primes (sieve (integers-starting-from 2)))
 
 (display (stream-ref primes 500))
+
+(define (fibgen a b)
+  (cons-stream a (fibgen b (+ a b))))
+(define fibs (fibgen 0 1))
+
+(define (take strm n)
+  (if (= n 0)
+      '()
+      (cons (stream-car strm)
+            (take (stream-cdr strm) (- n 1)))))
+
+(display (take fibs 20))
