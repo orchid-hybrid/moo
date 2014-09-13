@@ -41,6 +41,19 @@
       (and (pair? lst)
            (list? (cdr lst)))))
 
+(define (assoc k l)
+  (if (null? l)
+      #f
+      (if (equal? k (caar l))
+          (car l)
+          (assoc k (cdr l)))))
+
+(define (length lst)
+  (define (length-aux lst i)
+    (if (null? lst)
+        i
+        (length-aux (cdr lst) (+ i 1))))
+  (length-aux lst 0))
 
 (define (append l m)
   (if (null? l)
@@ -85,6 +98,10 @@
               (equal? (cdr p) (cdr q))))
         (#t #f)))
 
+;; ERROR
+
+;; (define (error stuff) (builtin-error (tostring stuff)))
+
 
 
 ;; DISPLAY
@@ -105,6 +122,9 @@
                                                (cons " . "
                                                      (cons (tostring (cdr obj))
                                                            (cons ")" '()))))))))
-
 (define (display obj)
   (put-string (tostring obj)))
+
+(define (newline) (display "\n"))
+
+

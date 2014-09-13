@@ -88,6 +88,7 @@
 (define (symbolic? c)
   (or (char-alphabetic? c)
       (char-numeric? c)
+      (equal? #\_ c)
       (equal? #\= c)
       (equal? #\* c)
       (equal? #\- c)
