@@ -565,6 +565,7 @@
                     (char->string . char_to_string)
                     (number->string . number_to_string)
                     (symbol->string . symbol_to_string)
+                    (string->symbol . string_to_symbol)
                     
                     string-append
                     (put-string . putstring)
@@ -635,7 +636,8 @@
     (compile (append (if debug
                          '()
                          (append (scm-parse-file "prelude.scm")
-                                 (scm-parse-file "set.scm")))
+                                 (scm-parse-file "set.scm")
+                                 (scm-parse-file "gensym.scm")))
                      (scm-parse-file filename))
              debug)))
 

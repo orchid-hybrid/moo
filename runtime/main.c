@@ -359,6 +359,16 @@ void symbol_to_string(scm *self) {
   stack_push(cont);
 }
 
+void string_to_symbol(scm *self) {
+  scm **env = self->val.closure.environment;
+  
+  scm n = stack_pop();
+  scm cont = stack_pop();
+  assert(n.typ == scm_type_string);
+  stack_push(sym(n.val.string_value));
+  stack_push(cont);
+}
+
 void string_append(scm *self) {
   char *app;
   int s1_len, s2_len;
