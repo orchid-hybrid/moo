@@ -310,6 +310,10 @@ void string_append(scm *self) {
   stack_push(*cont);
 }
 
+void scm_exit(scm *self) {
+  exit(0);
+}
+
 void halt(scm *self) {
   exit(0);
 }

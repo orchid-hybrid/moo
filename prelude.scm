@@ -100,7 +100,10 @@
 
 ;; ERROR
 
-;; (define (error stuff) (builtin-error (tostring stuff)))
+(define (error e)
+  (display (tostring e))
+  (display "\n")
+  (exit))
 
 
 
