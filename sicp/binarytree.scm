@@ -65,5 +65,5 @@
       init
       (generate-list fn (- size 1) (cons (fn) init))))
 
-(display (tree->list-2 (foldr adjoin-set '() (generate-list random 12 '()))))
+(display (tree->list-2 (foldr adjoin-set '() (generate-list (lambda () (random 420)) 12 '()))))
 (newline)

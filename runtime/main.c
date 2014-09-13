@@ -118,8 +118,9 @@ void gt(scm *self) {
 }
 
 void scm_random(scm *self) {
+  scm modu = stack_pop();
   scm cont = stack_pop();
-  stack_push(num(rand()));
+  stack_push(num(rand() % modu.val.number_value));
   stack_push(cont);
 }
 
