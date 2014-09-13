@@ -1,7 +1,7 @@
 (define (memq x xs)
   (cond ((null? xs) #f)
         ((eq? x (car xs)) #t)
-        (else  (memq x (cdr xs)))))
+        (else (memq x (cdr xs)))))
 
 (define (make-connector)
   (let ((value #f) 
@@ -28,13 +28,14 @@
                   constraints))
           'ignored))
     (define (connect new-constraint)
-      (if (not (memq new-constraint 
-                     constraints))
+      (if (not (memq new-constraint constraints))
           (set! constraints
                 (cons new-constraint 
-                      constraints)))
+                      constraints))
+          #f)
       (if (has-value? me)
-          (inform-about-value new-constraint))
+          (inform-about-value new-constraint)
+          #f)
       'done)
     (define (me request)
       (cond ((eq? request 'has-value?)
@@ -45,7 +46,7 @@
             ((eq? request 'forget) 
              forget-my-value)
             ((eq? request 'connect) connect)
-            (else (error (cons "Unknown operation CONNECTOR"
+            (else (error (cons "Unknown operation: CONNECTOR"
                          request)))))
     me))
 
@@ -119,7 +120,7 @@
            (process-new-value))
           ((eq? request 'I-lost-my-value)
            (process-forget-value))
-          (else (error (cons "Unknown request ADDER" request)))))
+          (else (error (cons "Unknown request: ADDER" request)))))
   (connect a1 me)
   (connect a2 me)
   (connect sum me)
@@ -161,7 +162,8 @@
           ((eq? request 'I-lost-my-value)
            (process-forget-value))
           (else
-           (error (cons "Unknown request MULTIPLIER" request)))))
+           (error (cons "Unknown request: MULTIPLIER" 
+                  request)))))
   (connect m1 me)
   (connect m2 me)
   (connect product me)
@@ -169,8 +171,7 @@
 
 (define (constant value connector)
   (define (me request)
-    (error (cons "Unknown request CONSTANT" 
-           request)))
+    (error (cons "Unknown request: CONSTANT" request)))
   (connect connector me)
   (set-value! connector value me)
   me)
@@ -182,7 +183,7 @@
 
 (define (probe name connector)
   (define (print-probe value)
-    (newline) (display "Probe ")
+    (newline) (display "Probe: ")
     (display name) (display " = ")
     (display value))
   (define (process-new-value)
@@ -194,7 +195,7 @@
            (process-new-value))
           ((eq? request 'I-lost-my-value)
            (process-forget-value))
-          (else (error (cons "Unknown request PROBE" request)))))
+          (else (error (cons "Unknown request: PROBE" request)))))
   (connect connector me)
   me)
 
@@ -206,3 +207,5 @@
 (probe "Fahrenheit temp" F)
 
 (set-value! C 25 'user)
+(newline)
+(exit)

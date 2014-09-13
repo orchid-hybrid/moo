@@ -42,6 +42,7 @@ int scm_truep(scm b) {
 }
 
 int scm_truepstar(scm *b) {
+  printf("%d\n", b->typ);
   assert(b->typ == scm_type_boolean);
   return b->val.boolean_value;
 }
@@ -221,23 +222,29 @@ void eq_question(scm *self) {
     if(v1.typ == scm_type_null) {
       stack_push(bool(1));
     }
-    //if(v1.typ == scm_type_pair) {
-    // TODO
-    //}
+    else if(v1.typ == scm_type_pair &&
+            v1.val.cons == v2.val.cons) {
+      stack_push(bool(1));
+    }
+    else if(v1.typ == scm_type_procedure &&
+            v1.val.cons == v2.val.cons) {
+      stack_push(bool(1));
+      
+    }
     else if(v1.typ == scm_type_symbol &&
-       v1.val.symbol_id == v2.val.symbol_id) {
+            v1.val.symbol_id == v2.val.symbol_id) {
       stack_push(bool(1));
     }
     else if(v1.typ == scm_type_boolean &&
-       v1.val.boolean_value == v2.val.boolean_value) {
+            v1.val.boolean_value == v2.val.boolean_value) {
       stack_push(bool(1));
     }
     else if(v1.typ == scm_type_char &&
-       v1.val.char_value == v2.val.char_value) {
+            v1.val.char_value == v2.val.char_value) {
       stack_push(bool(1));
     }
     else if(v1.typ == scm_type_number &&
-       v1.val.number_value == v2.val.number_value) {
+            v1.val.number_value == v2.val.number_value) {
       stack_push(bool(1));
     }
     else if(v1.typ == scm_type_string &&
