@@ -156,7 +156,7 @@
     ;; app
     ((pattern? `(,(disj symbol? list?) . _) exp)
      (if (equal? (car exp) 'list)
-         (foldl (lambda (x ys)
+         (foldl (lambda (ys x)
                   (list 'cons (desugar x) ys))
                 ''()
                 (cdr exp))
