@@ -28,3 +28,28 @@ scm stack_pop(void) {
     return stack[--stack_count];
   }
 }
+
+scm stack_pop_rest(void) {
+  void *memory; 
+  scm **cell;
+  scm args = (scm){ .typ=scm_type_null};
+  scm arg;
+  while(1) {
+    arg = stack_pop();
+    if(arg.typ == scm_stack_marker) {
+      stack_push(arg);
+      return args;
+    } else {
+      memory = gc_alloc(2*sizeof(scm*)+2*sizeof(scm));
+      cell = memory;
+      memory += 2*sizeof(scm*);
+      cell[0] = memory;
+      memory += sizeof(scm);
+      cell[1] = memory;
+      *cell[1] = args;
+      *cell[0] = arg;
+      args = (scm){ .typ=scm_type_pair, .val.cons=cell };
+    }
+  }
+}
+

@@ -119,7 +119,7 @@
     (cond
      ;; (cond)
      ((equal? '(cond) exp) '())
-     ;; (cond (else b))
+     ;; (cond (els b))
      ((and (equal? 'else (caadr exp))
 	   (= 2 (length exp)))
       (desugar (cons 'begin (cdadr exp))))
@@ -557,6 +557,7 @@
 
 (define builtins (prepare-builtins
                   '(halt
+                    (exit . scm_exit)
                     
                     null? pair? char? string? boolean?
                     number? procedure? symbol?
