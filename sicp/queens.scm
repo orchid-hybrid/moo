@@ -17,7 +17,7 @@
       (car l)
       (list-ref (cdr l) (- idx 1))))
 
-(define (abs x) (if (< x 0) (- x) x))
+(define (abs x) (if (< x 0) (- 0 x) x))
 
 ;; stole from http://www.billthelizard.com/2011/06/sicp-242-243-n-queens-problem.html thanks bill
 
@@ -66,5 +66,5 @@
           (queen-cols (- k 1))))))
   (queen-cols board-size))
 
-(display (queens 2))
+(display (length (queens 8)))
 
