@@ -7,7 +7,8 @@ enum scm_type {
   scm_type_number,
   scm_type_procedure,
   scm_type_string,
-  
+
+  scm_stack_marker,
   scm_gc_marked,
 };
 
