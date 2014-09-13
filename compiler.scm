@@ -194,16 +194,6 @@
       (boolean? expr)
       (pattern? '(quote _) expr)))
 
-(define (traverse primitive-case var-case lam-case app-case)
-  (lambda (exp)
-    (cond ((primitive-value? exp) primitive-case)
-          ((symbol? exp) (var-case exp))
-          ((pattern? '(lambda _ _) exp)
-           (let ((args (cadr exp)) (body (caddr exp)))
-             (lam-case args body)))
-          ((list? exp) (app-case exp))
-          (else (error "not a thing: " exp)))))
-
 ;; mutation boxing
 
 (define (mutable! mutable-vars v)
@@ -633,105 +623,6 @@
   (display ")"))
 
 
-;;(compile '(lambda (x) (+ x x)))
-
-;;(compile '(lambda (f x) (f (f (f x)))))
-
-;;(compile '(lambda (b f x y) (if b (f x) (f y))))
-
-;;(compile '(lambda (b f x y) (if (null? b) (f x) (f y))))
-
-;;(compile (desugar ''(x y)))
-
-;; (compile (desugar '((lambda (b f x y)  (if b (f x) (f y)))
-;;                     #t
-;;                     (lambda (s) (s 'yoo 'zoo))
-;;                     (lambda (p q) p)
-;;                     (lambda (p q) q))))
-
-;;(compile (desugar '(car '(x y))))
-
-;; (compile (desugar '(((lambda (s)
-;;                        (lambda (l)
-;;                          (if (null? l) (display 'end)
-;;                              (begin (display (car l)) (s (cdr l))))))
-;;                      ((lambda (s)
-;;                         (lambda (l)
-;;                           (if (null? l) (display 'end)
-;;                               (begin (display (car l)) (s (cdr l))))))
-;;                       ((lambda (s)
-;;                         (lambda (l)
-;;                           (if (null? l) (display 'end)
-;;                               (begin (display (car l)) (s (cdr l))))))
-;;                       (lambda (l)
-;;                         (if (null? l) (display 'end)
-;;                             (begin (display (car l)) (display 'no)))))))
-;;                     '(foo bar baz))))
-
-;; (compile (desugar '(((lambda (f)
-;;                        (f (f (f (lambda (e) (display 'no))))))
-;;                      (lambda (s)
-;;                        (lambda (l)
-;;                          (if (null? l) (display 'end)
-;;                              (begin (display (car l)) (s (cdr l)))))))
-;;                     '(foo bar baz))))
-
-;; (compile (desugar '(((lambda (r)
-;;                        ((lambda (f) (f f))
-;;                         (lambda (f) (r (lambda (x) ((f f) x))))))
-;;                      (lambda (s)
-;;                        (lambda (l)
-;;                          (if (null? l) (display 'end)
-;;                              (begin (display (car l)) (s (cdr l)))))))
-;;                     '(foo bar baz quux a b c d e f g h i z e e e e o o u o)))
-
-;; (compile (desugar '(display (((lambda (r)
-;;                                 ((lambda (f) (f f))
-;;                                  (lambda (f) (r (lambda (x) ((f f) x))))))
-;;                               (lambda (f)
-;;                                 (lambda (a b count)
-;;                                   (if (< count 0)
-;;                                       b
-;;                                       (f (+ a b) a (- count 1))))))
-;;                              1 0 50))))
-
-;; (compile (desugar '((lambda (a)
-;;                                (display a)
-;;                                (set! a 2)
-;;                                (display a)
-;;                                (set! a 3)
-;;                                (display a)) 1)))
-
-;; (compile (desugar '(let ((x (cons 'a 'b)))
-;;                      (display (car x))
-;;                      (set-car! x 'e)
-;;                      (display (car x))
-;;                      (display (cdr x)))))
-
-;; (compile (desugar '((lambda (u) (u u))
-;;                     (lambda (f) (display 'ok) (f f)))))
-
-;; (compile (desugar '((lambda (s) ((lambda (u) (u u))
-;;                                  (lambda (f) (display s) (f f))))
-;;                     'not-okay)))
-
-
-;; (compile '((define p
-;;               (lambda (x)
-;;                 (+ 1 (q (- x 1)))))
-            
-;;             (define q
-;;               (lambda (y)
-;;                 (if (= 0 y)
-;;                     0
-;;                     (+ 1 (p (- y 1))))))
-            
-;;             (define x (p 5))
-            
-;;             (define y x)
-            
-;;             y))
-
 (define (last l)
   (if (null? l)
       #f
@@ -745,18 +636,3 @@
            #f))
 
 (exit)
-
-;; testing
-
-(define (cps f)
-  (lambda args
-    ((car args) (apply f (cdr args)))))
-
-(define (make-closure code env) (cons code env))
-(define (invoke-closure closure . args) (apply (car closure) (cons (cdr closure) args)))
-
-(define *k (make-closure (lambda (k env x y) (invoke-closure k (* x y))) (vector)))
-(define +k (make-closure (lambda (k env x y) (invoke-closure k (+ x y))) (vector)))
-(define halt (make-closure (lambda (r env) (display r)) (vector)))
-
-
