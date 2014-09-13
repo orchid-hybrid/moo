@@ -630,9 +630,13 @@
           (car l)
           (last (cdr l)))))
 
-(let ((filename (or (last (command-line-arguments)) "test.scm")))
-  (compile (append (scm-parse-file "prelude.scm")
-                   (scm-parse-file filename))
-           #f))
+(let ((debug #f))
+  (let ((filename (or (last (command-line-arguments)) "test.scm")))
+    (compile (append (if debug
+                         '()
+                         (append (scm-parse-file "prelude.scm")
+                                 (scm-parse-file "set.scm")))
+                     (scm-parse-file filename))
+             debug)))
 
 (exit)

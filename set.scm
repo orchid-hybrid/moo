@@ -27,6 +27,7 @@
             (filter (cdr set-2))
             (cons (car set-2) (filter (cdr set-2))))))
   (append set-1 (filter set-2)))
+
 (define (set-union* sets)
   (if (null? sets)
       sets
