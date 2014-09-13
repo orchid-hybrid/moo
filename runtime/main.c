@@ -98,13 +98,17 @@ void num_eq(scm *self) {
   stack_push(cont);
 }
 
-void cons(scm *self) {
-  scm **env = self->val.closure.environment;
-  scm *b = gc_alloc_scm(stack_pop());
-  scm *a = gc_alloc_scm(stack_pop());
-  scm **cell = gc_alloc(2*sizeof(scm*));
-  cell[0] = a;
-  cell[1] = b;
+void cons(scm *self) { void *memory; 
+  //scm *b = gc_alloc_scm(stack_pop());
+  //scm *a = gc_alloc_scm(stack_pop());
+  memory = gc_alloc(2*sizeof(scm*)+2*sizeof(scm));
+  scm **cell = memory;
+  memory += 2*sizeof(scm*);
+  cell[0] = memory;
+  memory += sizeof(scm);
+  cell[1] = memory;
+  *cell[1] = stack_pop();
+  *cell[0] = stack_pop();
   scm cont = stack_pop();
   stack_push((scm){ .typ=scm_type_pair, .val.cons=cell });
   stack_push(cont);
