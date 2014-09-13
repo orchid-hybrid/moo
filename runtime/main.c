@@ -110,6 +110,15 @@ void divd(scm *self) {
   stack_push(cont);
 }
 
+void modulo(scm *self) {
+  scm b = stack_pop();
+  scm a = stack_pop();
+  scm cont = stack_pop();
+  int n = a.val.number_value % b.val.number_value;
+  stack_push(num(n));
+  stack_push(cont);
+}
+
 void lt(scm *self) {
   scm b = stack_pop();
   scm a = stack_pop();

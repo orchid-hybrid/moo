@@ -64,6 +64,9 @@
   (cond
    ((number? exp) exp)
    
+   ((pattern? '(cons-stream _ _) exp)
+    (desugar `(cons ,(cadr exp) (lambda () ,(caddr exp)))))
+   
    ((pattern? '(set! _ _) exp) `(set! ,(cadr exp) ,(desugar (caddr exp))))
  
    ((pattern? '(begin . _) exp)
@@ -579,7 +582,7 @@
                     
                     (= . num_eq)
                     (< . lt) (> . gt)
-                    (+ . add) (- . sub) (* . mul) (/ . divd)
+                    (+ . add) (- . sub) (* . mul) (/ . divd) (modulo . modulo)
                     )))
 
 (define (builtin? s) (assoc s builtins))
