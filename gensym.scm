@@ -27,7 +27,7 @@
 
 (define (gensym prefix)
   (let loop ((counter 0))
-    (let ((s (string->symbol (string-append prefix (number->string counter)))))
+    (let ((s (string->symbol (string-append (tostring prefix) (number->string counter)))))
       (if (symbol-add s)
           s
           (loop (+ counter 1))))))
