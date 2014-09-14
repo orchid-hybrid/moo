@@ -177,5 +177,11 @@
           (loop (cons (string-ref s i) l)
                 (+ i 1))))))
 
-(define (list->string s) '())
-
+(define (list->string s)
+  (let ((str (string-make (length s))))
+    (let loop ((s s) (i 0))
+      (if (null? s)
+          str
+          (begin
+            (string-set! str i (car s))
+            (loop (cdr s) (+ 1 i)))))))

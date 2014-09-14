@@ -387,6 +387,41 @@ void string_length(scm *self) {
   stack_push(cont);
 }
 
+void string_make(scm *self) {
+  scm **env = self->val.closure.environment;
+  
+  scm n = stack_pop();
+  scm cont = stack_pop();
+  
+  assert(n.typ == scm_type_number);
+  
+  char *s_space = gc_alloc(n.val.number_value+1);
+  memset(s_space,  ')', n.val.number_value);
+  s_space[n.val.number_value] = '\0';
+  
+  stack_push((scm){ .typ=scm_type_string, .val.string_value=s_space });
+  
+  stack_push(cont);
+  
+}
+
+void string_set(scm *self) {
+  scm **env = self->val.closure.environment;
+  
+  scm chr = stack_pop();
+  scm n = stack_pop();
+  scm s = stack_pop();
+  scm cont = stack_pop();
+  assert(chr.typ == scm_type_char);
+  assert(n.typ == scm_type_number);
+  assert(s.typ == scm_type_string);
+  assert(n.val.number_value >= 0);
+  assert(n.val.number_value < strlen(s.val.string_value));
+  s.val.string_value[n.val.number_value] = chr.val.char_value;
+  stack_push((scm){ .typ=scm_type_null});
+  stack_push(cont);
+}
+
 void string_ref(scm *self) {
   scm **env = self->val.closure.environment;
   
@@ -397,7 +432,7 @@ void string_ref(scm *self) {
   assert(s.typ == scm_type_string);
   assert(n.val.number_value >= 0);
   assert(n.val.number_value < strlen(s.val.string_value));
-  stack_push((scm){ .typ=scm_type_number, .val.char_value=s.val.string_value[n.val.number_value] });
+  stack_push((scm){ .typ=scm_type_char, .val.char_value=s.val.string_value[n.val.number_value] });
   stack_push(cont);
 }
 

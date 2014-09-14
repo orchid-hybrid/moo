@@ -580,6 +580,8 @@
                     (string->symbol . string_to_symbol)
                     (string-length . string_length)
                     (string-ref . string-ref)
+                    (string-set! . string_set)
+                    string-make
                     
                     string-append
                     (put-string . putstring)
