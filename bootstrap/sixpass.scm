@@ -559,7 +559,7 @@
                                             (list `(set! (ref ,env-heap ,i) memory)
                                                   `(set! (* (ref ,env-heap ,i)) (* ,e))
                                                   `(+= memory (sizeof scm)))))
-                                      (up-to (length envi))  envi)))
+                                      (up-to (length envi))  envi))
                   (list `(push (closure ,name ,(length envi) ,env-heap)))))))))
         ((pattern? '(invoke-closure _ . _) body)
          (let ((continuation (cadr body))
@@ -590,7 +590,7 @@
                       lambdas)
             (display hoisted-form) (newline)
             (display 'c-gen) (newline)
-            (let ((c-codes (fast-map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))                  (c-code-body (c-gen-body hoisted-form)))
+            (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))                  (c-code-body (c-gen-body hoisted-form)))
               (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
           )))))))
 
