@@ -82,34 +82,37 @@
    (else (tostring obj))))
 
 (define (formatter formatters)
-  (let ((fmtr (foldl (lambda (m c)
-                       (cond ((procedure? c) (c m))
-                             ((string? c) ((const-formatter c) m))))
-                     (lambda (ss m) (if (null? ss) m (error "format given too many args")))
-                     (reverse formatters))))
-    (lambda (ss) (fmtr ss ""))))
+  (foldl (lambda (m c)
+           (cond ((procedure? c) (c m))
+                 ((string? c) ((const-formatter c) m))))
+         (lambda (ss) (if (null? ss) "" (error "format given too many args")))
+         (reverse formatters)))
 
 (define (simple-formatter format-fn)
   (lambda (k)
-    (lambda (ss m)
-      (if (null? ss)
+    (lambda (args)
+      (if (null? args)
           (error "format given too few args")
-          (begin (display (format-fn (list (car ss))))
-                 (k (cdr ss) ""))))))
+          (begin (display (format-fn (car args)))
+                 (k (cdr args)))))))
 
 (define (const-formatter x)
   (lambda (k)
-      (lambda (ss m)
+      (lambda (args)
         (display x)
-        (k ss ""))))
+        (k args))))
 
 (define ~% (const-formatter "\n"))
 
 (define (~@ formatters)
   (let ((f (formatter (cons ~a formatters))))
     (lambda (k)
-      (lambda (ss m)
-        (k (cdr ss) (foldl (lambda (m c) (f (list m c))) m (car ss)))))))
+      (lambda (args)
+        (if (null? args)
+            ""
+            (begin
+              (foldl (lambda (m c) (f (list m c))) "" (car args))
+              (k (cdr args))))))))
 
 
 (define ~a (simple-formatter tostring))
@@ -119,8 +122,14 @@
 ;;(display ((formatter ~a ~s ~s "hi" ~m ~%)  "q"  "q" #\q 'hi>there))
 
 
-(display ((formatter (list ~a ~s (~@ (list ~a (~@ (list ~a)))) ~s "hi" ~m ~%))
-          (list  "q"  "q" (list "z" (list "z")) #\q 'hi>there)))
+
+;; ((formatter (list (~@ (list ~a (~@ (list ~a))))))
+;;  (list (list "z" (list "z"))))
+
+
+;; (display ((formatter (list ~a ~s ~s "hi" ~m ~%))
+;;           (list  "q"  "q" #\q 'hi>there)))
+;; (quit)
 ;; (compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
 ;;                           #t
 ;;                           (lambda (s) (s 'yoo 'zoo))
