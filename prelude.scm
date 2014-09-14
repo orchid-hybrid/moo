@@ -77,6 +77,11 @@
   (if (null? lst)
       '()
       (cons (fn (car lst)) (map fn (cdr lst)))))
+(define (map2 fn lst1 lst2)
+  (if (or (null? lst1) (null? lst2))
+      '()
+      (cons (fn (car lst1) (car lst2)) (map2 fn (cdr lst1) (cdr lst2)))))
+
 (define (for-each fn lst)
   (if (null? lst)
       '()
