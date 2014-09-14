@@ -108,7 +108,7 @@
         (tail-map f (cdr list) cell)
         cell)))
 
-(define (reverse list) (foldl cons '() list))
+(define (reverse list) (foldl (lambda (y x) ( cons x y)) '() list))
 
 
 
@@ -169,7 +169,13 @@
 (define (display obj)
   (put-string (tostring obj)))
 
-(define (string->list s) '())
+(define (string->list s)
+  (let ((len (string-length s)))
+    (let loop ((l '()) (i 0))
+      (if (> i (- len 1))
+          (reverse l)
+          (loop (cons (string-ref s i) l)
+                (+ i 1))))))
 
 (define (list->string s) '())
 
