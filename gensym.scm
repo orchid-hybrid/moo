@@ -25,7 +25,7 @@
          (add-all-symbols (cdr sexp)))
         (else #f)))
 
-(define (generate-symbol prefix)
+(define (gensym prefix)
   (let loop ((counter 0))
     (let ((s (string->symbol (string-append prefix (number->string counter)))))
       (if (symbol-add s)

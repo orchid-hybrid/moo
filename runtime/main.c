@@ -409,7 +409,7 @@ int main(void) {
 
   init_symbol_table(1);
   init_stack();
-  init_gc(50000);
+  init_gc(64000);
   
   stack_push(closure(scm_main, 0, NULL));
   
