@@ -586,22 +586,18 @@
           (display cc-form)  (newline)
           (display 'hoist) (newline)
           (let ((hoisted-form (hoist cc-form)))
-            (map (lambda (i) (display `(define ,(car i) ,(cdr i))))
+            (for-each (lambda (i) (display `(define ,(car i) ,(cdr i))))
                       lambdas)
             (display hoisted-form) (newline)
             (display 'c-gen) (newline)
             (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
                   (c-code-body (c-gen-body hoisted-form)))
-
-              (map (lambda (code) (display-code code) (newline)) c-codes)
-              (newline)
-              (exit)
-
+              (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
           )))))))
 
 (define (display-code code)
   (display "(") (display 'define-code) (display " ") (display (cadr code)) (newline)
-  (map (lambda (inst) (display "  ") (display inst)) (cddr code))
+  (for-each (lambda (inst) (display "  ") (display inst)) (cddr code))
   (display ")"))
 
 

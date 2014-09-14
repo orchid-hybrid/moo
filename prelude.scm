@@ -79,7 +79,7 @@
 (define (for-each fn lst)
   (if (null? lst)
       '()
-      (begin (fn (car lst)) (map fn (cdr lst)))))
+      (begin (fn (car lst)) (for-each fn (cdr lst)))))
 
 (define (member elt l)
   (if (null? l) #f (if (equal? elt (car l)) #t (member elt (cdr l)))))
