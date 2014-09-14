@@ -141,28 +141,28 @@
 
 ;; DISPLAY
 
-(define (tostring obj)
-  (cond
-   ((string? obj) obj)
-   ((char? obj) (char->string obj))
-   ((boolean? obj) (if obj "#t" "#f"))
-   ((procedure? obj) "#<procedure>")
-   ((number? obj) (number->string obj))
-   ((symbol? obj) (symbol->string obj))
-   ((null? obj) "()")
-   ((list? obj)
-    (foldl
-     string-append
-     "("
-     (append
-      (list (foldl (lambda (m c) (string-append m (string-append " " (tostring c))))
-                   (tostring (car obj))
-                   (cdr obj)))
-      (cons ")" '()))))
-   ((pair? obj) (foldl string-append "(" (cons (tostring (car obj))
-                                               (cons " . "
-                                                     (cons (tostring (cdr obj))
-                                                           (cons ")" '()))))))))
+;; (define (tostring obj)
+;;   (cond
+;;    ((string? obj) obj)
+;;    ((char? obj) (char->string obj))
+;;    ((boolean? obj) (if obj "#t" "#f"))
+;;    ((procedure? obj) "#<procedure>")
+;;    ((number? obj) (number->string obj))
+;;    ((symbol? obj) (symbol->string obj))
+;;    ((null? obj) "()")
+;;    ((list? obj)
+;;     (foldl
+;;      string-append
+;;      "("
+;;      (append
+;;       (list (foldl (lambda (m c) (string-append m (string-append " " (tostring c))))
+;;                    (tostring (car obj))
+;;                    (cdr obj)))
+;;       (cons ")" '()))))
+;;    ((pair? obj) (foldl string-append "(" (cons (tostring (car obj))
+;;                                                (cons " . "
+;;                                                      (cons (tostring (cdr obj))
+;;                                                            (cons ")" '()))))))))
 (define (display obj)
   (put-string (tostring obj)))
 

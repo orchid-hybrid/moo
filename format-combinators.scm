@@ -1,8 +1,10 @@
 (define char->string string)
-(define (foldl fn init lst)
-  (if (null? lst)
-      init
-      (foldl fn (fn init (car lst)) (cdr lst))))
+
+;; (define (foldl fn init lst)
+;;   (if (null? lst)
+;;       init
+;;       (foldl fn (fn init (car lst)) (cdr lst))))
+
 (define (concat-map f l)
   (if (null? l)
       '()
@@ -57,14 +59,19 @@
    ((number? obj) (number->string obj))
    ((symbol? obj) (symbol->string obj))
    ((null? obj) "()")
-   ((list? obj) (foldl string-append "(" (append
-                                          (map (lambda (s) (string-append (tostring s) " ")) obj)
-                                          (cons ")" '()))))
+   ((list? obj)
+    (foldl
+     string-append
+     "("
+     (append
+      (list (foldl (lambda (m c) (string-append m (string-append " " (tostring c))))
+                   (tostring (car obj))
+                   (cdr obj)))
+      (cons ")" '()))))
    ((pair? obj) (foldl string-append "(" (cons (tostring (car obj))
                                                (cons " . "
                                                      (cons (tostring (cdr obj))
                                                            (cons ")" '()))))))))
-
 (define (writestring obj)
   (cond
    ((string? obj) (string-quote obj))
@@ -118,20 +125,3 @@
 (define ~a (simple-formatter tostring))
 (define ~m (simple-formatter mangle))
 (define ~s (simple-formatter writestring))
-
-;;(display ((formatter ~a ~s ~s "hi" ~m ~%)  "q"  "q" #\q 'hi>there))
-
-
-
-;; ((formatter (list (~@ (list ~a (~@ (list ~a))))))
-;;  (list (list "z" (list "z"))))
-
-
-;; (display ((formatter (list ~a ~s ~s "hi" ~m ~%))
-;;           (list  "q"  "q" #\q 'hi>there)))
-;; (quit)
-;; (compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
-;;                           #t
-;;                           (lambda (s) (s 'yoo 'zoo))
-;;                           (lambda (p q) p)
-;;                           (lambda (p q) q))))
