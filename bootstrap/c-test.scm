@@ -135,3 +135,5 @@
            (append (concat (map c-gen-body arguments))
                    (c-gen-body continuation))))
         (else (error "error in c-gen-body"))))
+
+(display (c-gen '(define lambda0 (lambda (env rv41) (invoke-closure (make-closure putstring (vector)))))))
