@@ -5,18 +5,17 @@ int stack_allocated_size;
 
 void init_stack(void) {
   stack_count = 0;
-  stack_allocated_size = 64;
+  stack_allocated_size = 256;
   stack = malloc(stack_allocated_size*sizeof(scm));
 }
 
 scm *stack_push(scm v) {
-  if(stack_count == stack_allocated_size) {
+  while (stack_count >= stack_allocated_size) {
     stack_allocated_size *= 2;
     stack = realloc(stack, stack_allocated_size*sizeof(char*));
   }
   stack[stack_count] = v;
   stack_count++;
-  
   return stack+(stack_count-1);
 }
 

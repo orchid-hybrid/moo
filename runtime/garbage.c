@@ -24,7 +24,7 @@ void init_gc(int set_size) {
   alloc_ptr = live_space;
   end_ptr = live_space + space_size;
   dead_end_ptr = dead_space + space_size;
-  nursery_size = 64*sizeof(scm);
+  nursery_size = 256*sizeof(scm);
   nursery_index = 0;
   nursery = malloc(nursery_size);
 }
