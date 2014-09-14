@@ -231,6 +231,7 @@
 
 (define (mut-conv mvars replace e)
   (cond ((symbol? e) (if (member e replace) `(car ,e) e))
+        ((char? e) e)
         ((primitive-value? e) e)
         ((pattern? '(begin . _) e)
          `(begin . ,(map (lambda (se) (mut-conv mvars replace se)) (cdr e))))
@@ -577,6 +578,8 @@
                     (number->string . number_to_string)
                     (symbol->string . symbol_to_string)
                     (string->symbol . string_to_symbol)
+                    (string-length . string_length)
+                    (string-ref . string-ref)
                     
                     string-append
                     (put-string . putstring)
@@ -650,7 +653,8 @@
                          (append (scm-parse-file "prelude.scm")
                                 (append (scm-parse-file "set.scm")
                                         (append (scm-parse-file "gensym.scm")
-                                                (scm-parse-file "format-combinators.scm")))))
+                                                ;(scm-parse-file "format-combinators.scm")
+                                                ))))
                      (scm-parse-file filename))
              debug)))
 

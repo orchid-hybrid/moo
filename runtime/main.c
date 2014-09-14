@@ -379,6 +379,28 @@ void string_to_symbol(scm *self) {
   stack_push(cont);
 }
 
+void string_length(scm *self) {
+  scm s = stack_pop();
+  scm cont = stack_pop();
+  assert(s.typ == scm_type_string);
+  stack_push(num(strlen(s.val.string_value)));
+  stack_push(cont);
+}
+
+void string_ref(scm *self) {
+  scm **env = self->val.closure.environment;
+  
+  scm n = stack_pop();
+  scm s = stack_pop();
+  scm cont = stack_pop();
+  assert(n.typ == scm_type_number);
+  assert(s.typ == scm_type_string);
+  assert(n.val.number_value >= 0);
+  assert(n.val.number_value < strlen(s.val.string_value));
+  stack_push((scm){ .typ=scm_type_number, .val.char_value=s.val.string_value[n.val.number_value] });
+  stack_push(cont);
+}
+
 void string_append(scm *self) {
   char *app;
   int s1_len, s2_len;
