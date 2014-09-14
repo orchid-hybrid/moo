@@ -655,7 +655,7 @@
                          (append (scm-parse-file "prelude.scm")
                                 (append (scm-parse-file "set.scm")
                                         (append (scm-parse-file "gensym.scm")
-                                                ;(scm-parse-file "format-combinators.scm")
+                                                (scm-parse-file "format-combinators.scm")
                                                 ))))
                      (scm-parse-file filename))
              debug)))
