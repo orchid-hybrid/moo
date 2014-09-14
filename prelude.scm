@@ -72,6 +72,7 @@
   (if (null? lst)
       init
       (fn (car lst) (foldr fn init (cdr lst)))))
+
 (define (map fn lst)
   (if (null? lst)
       '()
@@ -83,6 +84,26 @@
 
 (define (member elt l)
   (if (null? l) #f (if (equal? elt (car l)) #t (member elt (cdr l)))))
+
+
+
+;; EFFICIENT MAP ALGORITHM
+
+(define (tail-map f list cell)
+  (if (null? list)
+      #f
+      (begin (set-cdr! cell (cons (f (car list))
+                                  (cdr list)))
+             (tail-map f (cdr list) (cdr cell)))))
+
+(define (fast-map f list)
+  (if (null? list)
+      '()
+      (let ((cell (cons (f (car list)) '())))
+        (tail-map f (cdr list) cell)
+        cell)))
+
+
 
 
 ;; EQUAL
