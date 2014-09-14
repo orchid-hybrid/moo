@@ -84,12 +84,10 @@
 (define (formatter formatters)
   (let ((fmtr (foldl (lambda (m c)
                        (cond ((procedure? c) (c m))
-                             ((string? c) (lambda (ss me)
-                                            (display c)
-                                            (m ss "")))))
+                             ((string? c) ((const-formatter c) m))))
                      (lambda (ss m) (if (null? ss) m (error "format given too many args")))
                      (reverse formatters))))
-    (lambda (ss yy) (fmtr ss yy))))
+    (lambda (ss) (fmtr ss ""))))
 
 (define (simple-formatter format-fn)
   (lambda (k)
@@ -99,17 +97,19 @@
           (begin (display (format-fn (list (car ss))))
                  (k (cdr ss) ""))))))
 
-(define ~%
+(define (const-formatter x)
   (lambda (k)
       (lambda (ss m)
-        (display "\n")
+        (display x)
         (k ss ""))))
+
+(define ~% (const-formatter "\n"))
 
 (define (~@ formatters)
   (let ((f (formatter (cons ~a formatters))))
     (lambda (k)
       (lambda (ss m)
-        (k (cdr ss) (foldl (lambda (m c) (f m c)) m (car ss)))))))
+        (k (cdr ss) (foldl (lambda (m c) (f (list m c))) m (car ss)))))))
 
 
 (define ~a (simple-formatter tostring))
@@ -119,7 +119,8 @@
 ;;(display ((formatter ~a ~s ~s "hi" ~m ~%)  "q"  "q" #\q 'hi>there))
 
 
-
+(display ((formatter (list ~a ~s (~@ (list ~a (~@ (list ~a)))) ~s "hi" ~m ~%))
+          (list  "q"  "q" (list "z" (list "z")) #\q 'hi>there)))
 ;; (compile (desugar '((lambda (b f x y) (if b (f x) (f y)))
 ;;                           #t
 ;;                           (lambda (s) (s 'yoo 'zoo))
