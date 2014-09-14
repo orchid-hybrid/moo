@@ -136,4 +136,31 @@
                    (c-gen-body continuation))))
         (else (error "error in c-gen-body"))))
 
-(display (c-gen '(define lambda0 (lambda (env rv41) (invoke-closure (make-closure putstring (vector)))))))
+(define (display-code code)
+  (display "(") (display 'define-code) (display " ") (display (cadr code)) (newline)
+  (for-each (lambda (inst) (display "  ") (display inst)) (cddr code))
+  (display ")"))
+
+(define codes '(
+                (define lambda903
+  (lambda (env k898 b f x y)
+    (if b (invoke-closure f k898 x) (invoke-closure f k898 y))))
+(define lambda904 (lambda (env k900 s) (invoke-closure s k900 'yoo 'zoo)))
+(define lambda905 (lambda (env k901 p q) (invoke-closure k901 p)))
+(define lambda906 (lambda (env k902 p q) (invoke-closure k902 q)))
+(define lambda907
+  (lambda (env k897)
+    (invoke-closure
+      (make-closure lambda903 (vector))
+      k897
+      #t
+      (make-closure lambda904 (vector))
+      (make-closure lambda905 (vector))
+      (make-closure lambda906 (vector)))))
+
+))
+
+;(invoke-closure (make-closure lambda907 (vector)) (make-closure halt (vector)))
+
+(for-each (lambda (e) (display (c-gen e)) (newline))
+          codes)
