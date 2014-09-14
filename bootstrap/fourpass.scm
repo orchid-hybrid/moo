@@ -396,6 +396,81 @@
         (else (error "not an aexpr in M!"))))
 
 
+
+(define (prepare-builtins l)
+  (map (lambda (b)
+         (if (pair? b) b (cons b b))) l))
+
+(define builtins (prepare-builtins
+                  '(halt
+                    (exit . scm_exit)
+
+                    (random . scm_random)
+                    
+                    null? pair? char? string? boolean?
+                    number? procedure? symbol?
+                    
+                    eq?
+                    
+                    cons car cdr
+                    (set-car! . set_car) (set-cdr! . set_cdr)
+                    
+                    (char->string . char_to_string)
+                    (number->string . number_to_string)
+                    (symbol->string . symbol_to_string)
+                    (string->symbol . string_to_symbol)
+                    
+                    string-append
+                    (put-string . putstring)
+                    newline
+                    
+                    (= . num_eq)
+                    (< . lt) (> . gt)
+                    (+ . add) (- . sub) (* . mul) (/ . divd) (modulo . modulo)
+                    )))
+(define (builtin? s) (assoc s builtins))
+
+
+(define (free! free-vars v)
+  (let* ((frees (cell-value free-vars))
+         (len (length frees))
+         (existing (assoc v frees)))
+    (if existing
+        (cdr existing)
+        (begin (set-cell! free-vars (append frees (list (cons v `(vector-ref env ,len)))))
+               `(vector-ref env ,len)))))
+
+(define (closure-convert globally-bound bound free-vars e)
+  (cond ((symbol? e)
+         ;; var
+         (if (member e bound)
+             e
+             (if (builtin? e)
+                 `(make-closure ,(cdr (assoc e builtins)) (vector))
+                 (if (member e globally-bound)
+                     (free! free-vars e)
+                     (error "out of scope!" e)))))
+        ((primitive-value? e) e)
+        ((pattern? '(if _ _ _) e)
+         (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
+           `(if ,(closure-convert globally-bound bound free-vars b)
+                ,(closure-convert globally-bound bound free-vars thn)
+                ,(closure-convert globally-bound bound free-vars els))))
+        ((pattern? '(lambda _ _) e)
+         (let ((vs (if (list? (cadr e)) (cadr e) (list (cadr e)))) (m (caddr e)))
+           ;; lam
+           ;; TODO trouble here [vs] with varargs
+           (let ((inner-free-vars (make-cell '())))
+             `(make-closure (lambda ,(cons 'env vs)
+                              ,(closure-convert (append vs globally-bound) vs inner-free-vars m))
+                            (vector . ,(map (lambda (a) (closure-convert globally-bound bound free-vars (car a)))
+                                            (cell-value inner-free-vars)))))))
+        ((list? e)
+         ;; app
+         `(invoke-closure . ,(map (lambda (a)
+                                    (closure-convert globally-bound bound free-vars a)) e)))))
+
+
 (define (run form)
   (display form) (newline)
   (display 'desugar) (newline)
@@ -406,7 +481,12 @@
       (display mut-form) (newline)
       (display 'cps) (newline)
       (let ((cps-form (T-c mut-form 'halt)))
-        (display cps-form)  (newline)))))
+        (display cps-form)  (newline)
+        (display 'cc) (newline)
+        (let* ((bound-variables '())
+               (cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
+          (display cc-form)  (newline)
+          )))))
 
 (
 run '((define (caar x) (car (car x)))
