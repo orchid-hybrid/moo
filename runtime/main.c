@@ -197,6 +197,16 @@ void cdr(scm *self) {
   stack_push(cont);
 }
 
+void set_cdr(scm *self) {
+  scm *value = gc_alloc_scm(stack_pop());
+  scm cell = stack_pop();
+  scm cont = stack_pop();
+  assert(cell.typ == scm_type_pair);
+  cell.val.cons[1] = value;
+  stack_push((scm){ .typ=scm_type_null});
+  stack_push(cont);
+}
+
 
 
 void generic_type_question(int typ, scm *self) {
