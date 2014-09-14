@@ -116,4 +116,5 @@
 (define ~m (simple-formatter mangle))
 (define ~s (simple-formatter writestring))
 
-;; (display ((formatter (list ~a ~s (~@ (list ~a)) ~s "hi" ~m ~%)) (list  "q"  "q" (list "z") #\q 'hi>there)))
+;; (display ((formatter (list ~a ~s (~@ (list ~a)) ~s "hi" ~m ~%))
+;;           (list  "q"  "q" (list "z") #\q 'hi>there)))
