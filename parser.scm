@@ -1,39 +1,11 @@
+;; DEPENDS on utility/list.scm
+
 (define (all p l)
   (if (null? l)
       #t
       (if (p (car l))
           (all p (cdr l))
           #f)))
-(define (any p l)
-  (if (null? l)
-      #f
-      (if (p (car l))
-          #t
-          (any p (cdr l)))))
-(define (fold kons knil klist)
-  (if (null? klist)
-      knil
-      (kons (car klist)
-            (fold kons knil (cdr klist)))))
-(define (list-index* i elt list)
-  (if (null? list)
-      #f
-      (if (equal? elt (car list))
-          i
-          (list-index* (+ i 1) elt (cdr list)))))
-(define (list-index elt list)
-  (list-index* 0 elt list))
-(define (assoc k l)
-  (if (null? l)
-      #f
-      (if (equal? k (caar l))
-          (car l)
-          (assoc k (cdr l)))))
-(define (concat-map f l)
-  (if (null? l)
-      '()
-      (append (f (car l))
-              (concat-map f (cdr l)))))
 
 (define (wrap-port-with-line-tracking port)
   (let ((line 1))
@@ -88,7 +60,6 @@
 (define (symbolic? c)
   (or (char-alphabetic? c)
       (char-numeric? c)
-      (equal? #\_ c)
       (equal? #\= c)
       (equal? #\* c)
       (equal? #\- c)
@@ -96,32 +67,9 @@
       (equal? #\+ c)
       (equal? #\. c)
       (equal? #\? c)
-      (equal? #\$ c)
-      (equal? #\@ c)
-      (equal? #\~ c)
-      (equal? #\% c)
       (equal? #\! c)
       (equal? #\< c)
       (equal? #\> c)))
-
-(define (numeric? n)
-  (or (equal? #\0 c)
-      (equal? #\1 c)
-      (equal? #\2 c)
-      (equal? #\3 c)
-      (equal? #\4 c)
-      (equal? #\5 c)
-      (equal? #\6 c)
-      (equal? #\7 c)
-      (equal? #\8 c)
-      (equal? #\9 c)))
-
-(define (numeric-value n)
-  (case n
-    ((#\0) 0)
-    ((#\1) 1) ((#\2) 2) ((#\3) 3)
-    ((#\4) 4) ((#\5) 5) ((#\6) 6)
-    ((#\7) 7) ((#\8) 8) ((#\9) 9)))
 
 (define (skip-whitespace stream)
   (if (whitespace? (peek-char stream))
