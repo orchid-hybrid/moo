@@ -77,6 +77,7 @@
   (if (null? lst)
       '()
       (cons (fn (car lst)) (map fn (cdr lst)))))
+
 (define (map2 fn lst1 lst2)
   (if (or (null? lst1) (null? lst2))
       '()
@@ -145,31 +146,32 @@
 ;; IO ;;
 ;;;;;;;;
 
-(define alphabetic-chars (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-(define numeric-chars (string->list "1234567890"))
-(define (char-alphabetic? c)
-  (member c alphabetic-chars))
-(define (char-numeric? c)
-  (member c numeric-chars))
+;; (define alphabetic-chars (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+;; (define numeric-chars (string->list "1234567890"))
+;; (define (char-alphabetic? c)
+;;   (member c alphabetic-chars))
+;; (define (char-numeric? c)
+;;   (member c numeric-chars))
 
 
-(define (peek-char port) (peek-char0))
+;; (define (peek-char port)
+;;   (peek-char0))
 
-(define (read-char port)
-  (let ((c (read-char0)))
-    (if (equal? #\newline c)
-        (set-cell! (cadr port) (+ (cell-value (cadr port)) 1))
-        #f)
-    (set-cell! (car port) (+ 1 (cell-value (car port))))
-    c))
+;; (define (read-char port)
+;;   (let ((c (read-char0)))
+;;     (if (equal? #\newline c)
+;;         (set-cell! (cadr port) (+ (cell-value (cadr port)) 1))
+;;         #f)
+;;     (set-cell! (car port) (+ 1 (cell-value (car port))))
+;;     c))
 
-(define (open-input-file x) x)
+;; (define (open-input-file x) x)
 
-(define (wrap-port-with-line-tracking p)
-  (let* ((line (make-cell 1))
-         (get-line (lambda () (cell-value line))))
-    (cons get-line
-          (list (make-cell 0) line))))
+;; (define (wrap-port-with-line-tracking p)
+;;   (let* ((line (make-cell 1))
+;;          (get-line (lambda () (cell-value line))))
+;;     (cons get-line
+;;           (list (make-cell 0) line))))
 
 ;; DISPLAY
 
@@ -196,6 +198,7 @@
                                                      (cons (tostring (cdr obj))
                                                            (cons ")" '()))))))))
 
+
 (define (concat-map f l)
   (if (null? l)
       '()
@@ -217,6 +220,7 @@
 (define (string-quote s)
   (string-append "\"" (string-append (escape-string s) "\"")))
 
+
 (define (writestring obj)
   (cond
    ((string? obj) (string-quote obj))
@@ -234,8 +238,11 @@
    (else (tostring obj))))
 
 
+
 (define (display obj)
   (put-string (tostring obj)))
+
+(define pretty-print display)
 
 (define (string->list s)
   (let ((len (string-length s)))
@@ -253,3 +260,4 @@
           (begin
             (string-set! str i (car s))
             (loop (cdr s) (+ 1 i)))))))
+
