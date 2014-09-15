@@ -420,7 +420,7 @@
   (cons 0 (iota '() (- n 1))))
 
 (define (iota acc n)
-  (if (zero? n)
+  (if (= 0 n)
       acc
       (iota (cons n acc) (- n 1))))
 
@@ -609,11 +609,11 @@
     (let ((desugared (desugar form)))
       (let ((mut-form (mut-conv (make-cell '()) '() desugared)))
         (let ((cps-form (T-c mut-form 'halt)))
-          (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form))
+          (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
             (let ((hoisted-form (hoist cc-form)))
               (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
                     (c-code-body (c-gen-body hoisted-form)))
-                ((formatter (list (~@ (list ~e ~%)) ~e)) (list c-codes `(define-code scm-main . ,c-code-body))))))))))))
+                ((formatter (list (~@ (list ~e ~%)) ~e)) (list c-codes `(define-code scm-main . ,c-code-body)))))))))))
 
 
 (compile
@@ -1041,7 +1041,7 @@
   (cons 0 (iota '() (- n 1))))
 
 (define (iota acc n)
-  (if (zero? n)
+  (if (= 0 n)
       acc
       (iota (cons n acc) (- n 1))))
 
@@ -1224,16 +1224,18 @@
 
 (define (builtin? s) (assoc s builtins))
 
+
 (define (compile form debug)
   (let ((form `(let () . ,form))
         (bound-variables '()))
     (let ((desugared (desugar form)))
       (let ((mut-form (mut-conv (make-cell '()) '() desugared)))
         (let ((cps-form (T-c mut-form 'halt)))
-          (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form))
+          (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
             (let ((hoisted-form (hoist cc-form)))
               (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
                     (c-code-body (c-gen-body hoisted-form)))
-                ((formatter (list (~@ (list ~e ~%)) ~e)) (list c-codes `(define-code scm-main . ,c-code-body))))))))))))
+                ((formatter (list (~@ (list ~e ~%)) ~e)) (list c-codes `(define-code scm-main . ,c-code-body)))))))))))
+
 
 ))
