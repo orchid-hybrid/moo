@@ -588,10 +588,13 @@
                     (number->string . number_to_string)
                     (symbol->string . symbol_to_string)
                     (string->symbol . string_to_symbol)
+                    (string->number . string_to_number)
                     (string-length . string_length)
                     (string-ref . string-ref)
                     (string-set! . string_set)
                     string-make
+                    
+                    peek-char read-char (eof-object? . eof_object_question)
                     
                     string-append
                     (put-string . putstring)

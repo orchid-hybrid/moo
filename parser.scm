@@ -1,11 +1,11 @@
 ;; DEPENDS on utility/list.scm
-
 (define (all p l)
   (if (null? l)
       #t
       (if (p (car l))
           (all p (cdr l))
           #f)))
+
 
 (define (wrap-port-with-line-tracking port)
   (let ((line 1))
@@ -62,6 +62,8 @@
       (char-numeric? c)
       (equal? #\= c)
       (equal? #\% c)
+      (equal? #\_ c)
+      (equal? #\$ c)
       (equal? #\~ c)
       (equal? #\@ c)
       (equal? #\* c)

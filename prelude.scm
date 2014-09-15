@@ -90,7 +90,17 @@
 (define (member elt l)
   (if (null? l) #f (if (equal? elt (car l)) #t (member elt (cdr l)))))
 
-
+(define (char-numeric? ch)
+  (or (equal? ch #\0)
+(equal? ch #\1)
+(equal? ch #\2)
+(equal? ch #\3)
+(equal? ch #\4)
+(equal? ch #\5)
+(equal? ch #\6)
+(equal? ch #\7)
+(equal? ch #\8)
+(equal? ch #\9)))
 
 ;; EFFICIENT MAP ALGORITHM
 

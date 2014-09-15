@@ -379,6 +379,16 @@ void string_to_symbol(scm *self) {
   stack_push(cont);
 }
 
+void string_to_number(scm *self) {
+  scm **env = self->val.closure.environment;
+  
+  scm n = stack_pop();
+  scm cont = stack_pop();
+  assert(n.typ == scm_type_string);
+  stack_push(num(atoll(n.val.string_value)));
+  stack_push(cont);
+}
+
 void string_length(scm *self) {
   scm s = stack_pop();
   scm cont = stack_pop();
@@ -458,6 +468,47 @@ void string_append(scm *self) {
   free(app);
   stack_push(*cont);
 }
+
+int fpeek(FILE *stream)
+{
+    int c;
+
+    c = fgetc(stream);
+    ungetc(c, stream);
+
+    return c;
+}
+
+void peek_char(scm *self) {
+  scm **env = self->val.closure.environment;
+
+  scm ignored = stack_pop();
+  scm cont = stack_pop();
+  stack_push((scm){ .typ=scm_type_char, .val.char_value=fpeek(stdin) });
+  stack_push(cont);
+}
+
+void read_char(scm *self) {
+  scm **env = self->val.closure.environment;
+
+  scm ignored = stack_pop();
+  scm cont = stack_pop();
+  stack_push((scm){ .typ=scm_type_char, .val.char_value=fgetc(stdin) });
+  stack_push(cont);
+}
+
+void eof_object_question(scm *self) {
+  scm **env = self->val.closure.environment;
+
+  scm ch = stack_pop();
+  scm cont = stack_pop();
+  assert(ch.typ == scm_type_char);
+  stack_push(bool(ch.val.char_value== -1));
+  stack_push(cont);
+  
+}
+
+
 
 void scm_exit(scm *self) {
   exit(0);
