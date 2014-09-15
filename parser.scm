@@ -61,6 +61,9 @@
   (or (char-alphabetic? c)
       (char-numeric? c)
       (equal? #\= c)
+      (equal? #\% c)
+      (equal? #\~ c)
+      (equal? #\@ c)
       (equal? #\* c)
       (equal? #\- c)
       (equal? #\/ c)
@@ -188,7 +191,7 @@
        ((equal? c #\t) #t)
        ((equal? c #\\) (finish-reading-char input-stream))
        (else (error "unknown hash code")))))
-    (else (error (string-append "unknown symbol at line " (number->string (get-line))))))))
+    (else (error (string-append "unknown symbol at line " (peek-char input-stream) (number->string (get-line))))))))
 
 (define (scm-read* sexps get-line input-stream)
   (skip-whitespace input-stream)
