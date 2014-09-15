@@ -49,7 +49,11 @@
         (display x)
         (k args))))
 
-(define ~% (const-formatter "\n"))
+(define ~%
+  (lambda (k)
+    (lambda (args)
+      (newline)
+      (k args))))
 
 (define (~@ formatters)
   (let ((f (formatter (cons ~a formatters))))
