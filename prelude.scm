@@ -90,24 +90,9 @@
 (define (member elt l)
   (if (null? l) #f (if (equal? elt (car l)) #t (member elt (cdr l)))))
 
-(define (char-numeric? ch)
-  (or (equal? ch #\0)
-(equal? ch #\1)
-(equal? ch #\2)
-(equal? ch #\3)
-(equal? ch #\4)
-(equal? ch #\5)
-(equal? ch #\6)
-(equal? ch #\7)
-(equal? ch #\8)
-(equal? ch #\9)))
 
-(define (char-alphabetic? e) e)
-(define ( open-input-file e) e)
-(define (make-input-port e f g h) e)
-(define (close e) e)
-(define (char-ready p) #t)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; EFFICIENT MAP ALGORITHM
 
 (define (tail-map f list cell)
@@ -156,6 +141,35 @@
   (exit))
 
 
+;;;;;;;;
+;; IO ;;
+;;;;;;;;
+
+(define alphabetic-chars (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+(define numeric-chars (string->list "1234567890"))
+(define (char-alphabetic? c)
+  (member c alphabetic-chars))
+(define (char-numeric? c)
+  (member c numeric-chars))
+
+
+(define (peek-char port) (peek-char0))
+
+(define (read-char port)
+  (let ((c (read-char0)))
+    (if (equal? #\newline c)
+        (set-cell! (cadr port) (+ (cell-value (cadr port)) 1))
+        #f)
+    (set-cell! (car port) (+ 1 (cell-value (car port))))
+    c))
+
+(define (open-input-file x) x)
+
+(define (wrap-port-with-line-tracking p)
+  (let* ((line (make-cell 1))
+         (get-line (lambda () (cell-value line))))
+    (cons get-line
+          (list (make-cell 0) line))))
 
 ;; DISPLAY
 

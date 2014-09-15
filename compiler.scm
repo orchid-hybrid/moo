@@ -594,7 +594,7 @@
                     (string-set! . string_set)
                     string-make
                     
-                    peek-char read-char (eof-object? . eof_object_question)
+                    peek-char0 read-char0 (eof-object? . eof_object_question)
                     
                     string-append
                     (put-string . putstring)
@@ -666,9 +666,9 @@
     (compile (append (if debug
                          '()
                          (append (scm-parse-file "prelude.scm")
-                                (append (scm-parse-file "set.scm")
-                                        (append (scm-parse-file "gensym.scm")
-                                                (scm-parse-file "format-combinators.scm")
+                                 (append (scm-parse-file "set.scm")
+                                         (append (scm-parse-file "gensym.scm")
+                                                 (scm-parse-file "format-combinators.scm")
                                                 ))))
                      (scm-parse-file filename))
              debug)))

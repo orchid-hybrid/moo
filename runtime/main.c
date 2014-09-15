@@ -479,7 +479,7 @@ int fpeek(FILE *stream)
     return c;
 }
 
-void peek_char(scm *self) {
+void peek_char0(scm *self) {
   scm **env = self->val.closure.environment;
 
   scm ignored = stack_pop();
@@ -488,7 +488,7 @@ void peek_char(scm *self) {
   stack_push(cont);
 }
 
-void read_char(scm *self) {
+void read_char0(scm *self) {
   scm **env = self->val.closure.environment;
 
   scm ignored = stack_pop();
