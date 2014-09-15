@@ -102,6 +102,12 @@
 (equal? ch #\8)
 (equal? ch #\9)))
 
+(define (char-alphabetic? e) e)
+(define ( open-input-file e) e)
+(define (make-input-port e f g h) e)
+(define (close e) e)
+(define (char-ready p) #t)
+
 ;; EFFICIENT MAP ALGORITHM
 
 (define (tail-map f list cell)
