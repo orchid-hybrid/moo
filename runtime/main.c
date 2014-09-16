@@ -482,7 +482,6 @@ int fpeek(FILE *stream)
 void peek_char0(scm *self) {
   scm **env = self->val.closure.environment;
 
-  scm ignored = stack_pop();
   scm cont = stack_pop();
   stack_push((scm){ .typ=scm_type_char, .val.char_value=fpeek(stdin) });
   stack_push(cont);
@@ -491,7 +490,6 @@ void peek_char0(scm *self) {
 void read_char0(scm *self) {
   scm **env = self->val.closure.environment;
 
-  scm ignored = stack_pop();
   scm cont = stack_pop();
   stack_push((scm){ .typ=scm_type_char, .val.char_value=fgetc(stdin) });
   stack_push(cont);
