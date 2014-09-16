@@ -1,4 +1,5 @@
 ;; Pattern matching
+
 (define (any p l)
   (if (null? l)
       #f
@@ -18,14 +19,6 @@
                    (pattern? (car p) (car e))
                    (pattern? (cdr p) (cdr e))))))
 
-(define (primitive-value? expr)
-  (or (null? expr)
-      (symbol? expr)
-      (number? expr)
-      (string? expr)
-      (boolean? expr)
-      (pattern? '(quote _) expr)))
-
 ;; Mutable cells
 
 (define (make-cell v) (cons v '()))
@@ -39,7 +32,7 @@
   (let* ((defs (cell-value defsb))
          (existing (assoc d defs)))
     (if existing
-        (error "identifier defined multiple times" d)
+        (error (cons "identifier defined multiple times" d))
         (begin (set-cell! defsb (append defs (list (cons d body))))
                `(set! ,d (begin . ,body))))))
 
@@ -71,6 +64,9 @@
   (cond
    ((number? exp) exp)
    
+   ((pattern? '(cons-stream _ _) exp)
+    (desugar `(cons ,(cadr exp) (lambda () ,(caddr exp)))))
+   
    ((pattern? '(set! _ _) exp) `(set! ,(cadr exp) ,(desugar (caddr exp))))
  
    ((pattern? '(begin . _) exp)
@@ -94,7 +90,7 @@
            (bindings (caddr exp))
            (params (map car bindings))
            (values (map cadr bindings))
-           (body (cdddr exp)))
+   (body (cdddr exp)))
       (desugar `(letrec ((,name (lambda ,params . ,body)))
                   (,name . ,values)))))
    
@@ -126,7 +122,7 @@
     (cond
      ;; (cond)
      ((equal? '(cond) exp) '())
-     ;; (cond (else b))
+     ;; (cond (els b))
      ((and (equal? 'else (caadr exp))
            (= 2 (length exp)))
       (desugar (cons 'begin (cdadr exp))))
@@ -168,7 +164,7 @@
                 ''()
                 (cdr exp))
          (map desugar exp)))
-    (else exp))) ;;(error "desugar" exp))))
+    (else  exp))) ;;(error "desugar" exp))))
 
 (define (quote-desugar term)
   (cond
@@ -186,6 +182,18 @@
            ,(quasiquote-desugar (cdr term))))
    (else (desugar `(quote ,term)))))
 
+
+
+;; Recursion on sexp lambda terms
+
+(define (primitive-value? expr)
+  (or (null? expr)
+      (symbol? expr)
+      (number? expr)
+      (string? expr)
+      (boolean? expr)
+      (char? expr)
+      (pattern? '(quote _) expr)))
 
 ;; mutation boxing
 
@@ -224,6 +232,7 @@
 
 (define (mut-conv mvars replace e)
   (cond ((symbol? e) (if (member e replace) `(car ,e) e))
+        ((char? e) e)
         ((primitive-value? e) e)
         ((pattern? '(begin . _) e)
          `(begin . ,(map (lambda (se) (mut-conv mvars replace se)) (cdr e))))
@@ -256,7 +265,7 @@
         ((pattern? '(_ . _) e)
          (mut-collect mvars e)
          `(,(mut-conv mvars replace (car e)) . ,(map (lambda (a) (mut-conv mvars replace a)) (cdr e))))
-        (else (error "dont know how to mut-conv" e))))
+        (else (error (cons "dont know how to mut-conv" e)))))
 
 
 ;; CPS transform [taken from http://matt.might.net/articles/cps-conversion/ - thanks to Matt Might]
@@ -273,16 +282,21 @@
         ((pattern? '(begin _ . _) expr)
          (T-k (cadr expr) (lambda (_)
                             (T-k `(begin . ,(cddr expr)) k))))
-        ((pattern? '(if _ _ _) expr)
-         (let* ((rv (gensym 'rv))
-                (cont `(lambda(,rv) ,(k rv))))
-           (T-c expr cont)))
 
+        ((pattern? '(if _ _ _) expr)
+                                        ; We have to reify the cont to avoid
+                                        ; a possible code blow-up:
+         (let* (($rv (gensym '$rv))
+               (cont `(lambda(,$rv) ,(k $rv))))
+           (T-c expr cont)))
         ((list? expr)
          (let* ((rv (gensym "rv"))
                 (cont `(lambda (,rv) ,(k rv))))
            (T-c expr cont)))
         (error "T-k input language")))
+
+
+             
 
 (define (T-c expr c)
   (cond ((aexpr? expr) `(,c ,(M expr)))
@@ -299,14 +313,14 @@
                  (thn (caddr expr))
                  (els (cadddr expr)))
              (let ((if-form (lambda (v)
-                              (T-k bool (lambda (aexp)
-                                          `(if ,aexp 
-                                               ,(T-c thn v)
-                                               ,(T-c els v)))))))
+                            (T-k bool (lambda (aexp)
+                                        `(if ,aexp 
+                                             ,(T-c thn v)
+                                             ,(T-c els v)))))))
                (if (symbol? c)
                    (if-form c)
-                   (let ((k (gensym 'k)))
-                     `((lambda (,k) ,(if-form k)) ,c)))))))
+                   (let (($k (gensym '$k)))
+                     `((lambda (,$k) ,(if-form $k)) ,c)))))))
 
         ((list? expr)
          (let ((f (car expr)) (args (cdr expr)))
@@ -328,41 +342,7 @@
         ((primitive-value? aexpr) aexpr)
         (else (error "not an aexpr in M!"))))
 
-
-
-(define (prepare-builtins l)
-  (map (lambda (b)
-         (if (pair? b) b (cons b b))) l))
-
-(define builtins (prepare-builtins
-                  '(halt
-                    (exit . scm_exit)
-
-                    (random . scm_random)
-                    
-                    null? pair? char? string? boolean?
-                    number? procedure? symbol?
-                    
-                    eq?
-                    
-                    cons car cdr
-                    (set-car! . set_car) (set-cdr! . set_cdr)
-                    
-                    (char->string . char_to_string)
-                    (number->string . number_to_string)
-                    (symbol->string . symbol_to_string)
-                    (string->symbol . string_to_symbol)
-                    
-                    string-append
-                    (put-string . putstring)
-                    newline
-                    
-                    (= . num_eq)
-                    (< . lt) (> . gt)
-                    (+ . add) (- . sub) (* . mul) (/ . divd) (modulo . modulo)
-                    )))
-(define (builtin? s) (assoc s builtins))
-
+;; closure conversion
 
 (define (free! free-vars v)
   (let* ((frees (cell-value free-vars))
@@ -382,7 +362,7 @@
                  `(make-closure ,(cdr (assoc e builtins)) (vector))
                  (if (member e globally-bound)
                      (free! free-vars e)
-                     (error "out of scope!" e)))))
+                     (error (cons "out of scope!" e))))))
         ((primitive-value? e) e)
         ((pattern? '(if _ _ _) e)
          (let ((b (cadr e)) (thn (caddr e)) (els (cadddr e)))
@@ -401,7 +381,9 @@
         ((list? e)
          ;; app
          `(invoke-closure . ,(map (lambda (a)
-                                    (closure-convert globally-bound bound free-vars a)) e)))))
+                                    (closure-convert globally-bound bound free-vars a)) e)))
+        (else (error "cc-error"))))
+
 
 ;; Hoist
 
@@ -441,12 +423,6 @@
       acc
       (iota (cons n acc) (- n 1))))
 
-(define (blah? x)
-  (or (null? x)
-      (number? x)
-      (boolean? x)
-      (string? x)))
-
 (define (c-gen def)
   (if (pattern? '(define _ (lambda (env . _) _)) def)
       (let ((name (cadr def)) (args (cdadr (caddr def))) (body (caddr (caddr def))))
@@ -458,10 +434,18 @@
       acc
       (c-gen-pop-args (cons `(declare scm* ,(car args) (hold (pop))) acc) (cdr args))))
 
+(define (blah? x)
+  (or (null? x)
+      (char? x)
+      (number? x)
+      (boolean? x)
+      (string? x)))
+
 (define (c-gen-body body)
   (cond ((null? body) (list `(push (make-nil))))
         ((symbol? body) (list `(push (* ,body))))
         ((number? body) (list `(push (make-number ,body))))
+        ((char? body) (list `(push (make-char ,body))))
         ((boolean? body) (list `(push ,body)))
         ((string? body) (list `(push (make-string ,body))))
         ((pattern? `(quote ,symbol?) body)
@@ -487,25 +471,19 @@
                               `(declare scm** ,env-heap memory)
                               `(+= memory (* ,(length envi) (sizeof scm*))))
                         (concat (map2 (lambda (i e)
-                                        (if (pattern? '(vector-ref env _) e)
-                                            (list `(set! (ref ,env-heap ,i) ,e))
-                                            (list `(set! (ref ,env-heap ,i) memory)
-                                                  `(set! (* (ref ,env-heap ,i)) (* ,e))
-                                                  `(+= memory (sizeof scm)))))
-                                      (up-to (length envi))  envi))
+                                       (if (pattern? '(vector-ref env _) e)
+                                           (list `(set! (ref ,env-heap ,i) ,e))
+                                           (list `(set! (ref ,env-heap ,i) memory)
+                                                 `(set! (* (ref ,env-heap ,i)) (* ,e))
+                                                 `(+= memory (sizeof scm)))))
+                                     (up-to (length envi)) envi))
                         (list `(push (closure ,name ,(length envi) ,env-heap)))))))))
         ((pattern? '(invoke-closure _ . _) body)
          (let ((continuation (cadr body))
                (arguments (cddr body)))
            (append (concat (map c-gen-body arguments))
                    (c-gen-body continuation))))
-        (else (error "error in c-gen-body"))))
-
-
-
-
-
-
+        (else  (error (cons "error in c-gen-body" body)))))
 
 ;; emit c
 
@@ -513,6 +491,7 @@
   (cond ((equal? exp 'null) (null-fmt '()))
         ((equal? exp 'env) (env-fmt '()))
         ((symbol? exp) (sym-fmt (list exp)))
+        ((char? exp) (char-fmt (list exp)))
         ((number? exp) (num-fmt (list exp)))
         ((null? exp) (empty-fmt '()))
         ((boolean? exp) (bool-fmt (list (if exp 1 0))))
@@ -537,13 +516,14 @@
         ((pattern? '(make-symbol _) exp) (make-symbol-fmt (list (cadr exp))))
         ((pattern? '(make-string _) exp) (make-string-fmt (list (cadr exp))))
         ((pattern? '(make-number _) exp) (make-number-fmt (list (cadr exp))))
+        ((pattern? '(make-char _) exp) (make-char-fmt (list (cadr exp))))
         ((pattern? '(set! _ _) exp) (set!-fmt (list (cadr exp) (caddr exp))))
         ((pattern? '(+= _ _) exp)  (+=-fmt (list (cadr exp) (caddr exp))))
         ((pattern? '(declare _ _ (hold (pop))) exp)
          (declare-hold-fmt (list (cadr exp) (caddr exp) (cadr (cadddr exp)))))
         ((pattern? '(declare _ _ _) exp)
          (declare-fmt (list (cadr exp) (caddr exp) (cadddr exp))))
-        (else (error "no emitter for: " exp))))
+        (else (error (cons "no emitter for: " exp)))))
 
 
 (define ~e (simple-formatter emit-c))
@@ -552,6 +532,11 @@
 (define env-fmt (formatter (list "self->val.closure.environment")))
 (define sym-fmt (formatter (list ~m)))
 (define num-fmt (formatter (list ~a)))
+(define char-fmt (lambda (c)
+                   (cond ((equal? #\newline (car c)) "'\\n'")
+                         ((equal? #\\ (car c))  "'\\\\'")
+                         ((equal? #\' (car c)) "'\\''")
+                         (else ((formatter (list "'" ~a "'")) c)))))
 (define empty-fmt (formatter (list "(scm){ .typ=scm_type_null }")))
 (define bool-fmt (formatter (list "bool(" ~a ")")))
 (define string-fmt (formatter (list ~s)))
@@ -578,53 +563,83 @@
 (define make-symbol-fmt (formatter (list "sym(" ~e ")")))
 (define make-string-fmt (formatter (list "str_alloc(" ~e ")")))
 (define make-number-fmt (formatter (list "num(" ~e ")")))
+(define make-char-fmt (formatter (list "(scm){ .typ=scm_type_char, .val.char_value=" ~e "}")))
 (define set!-fmt (formatter (list ~e " = " ~e ";")))
 (define +=-fmt (formatter (list ~e " += " ~e ";")))
 (define declare-hold-fmt (formatter (list ~a " " ~e " = nursery_hold(" ~e ");")))
 (define declare-fmt (formatter (list ~a " " ~e " = " ~e ";")))
 
+;; Compiler
+
+(define (prepare-builtins l)
+  (map (lambda (b)
+         (if (pair? b) b (cons b b))) l))
+
+(define builtins (prepare-builtins
+                  '(halt
+                    (exit . scm_exit)
+
+                    (random . scm_random)
+                    
+                    null? pair? char? string? boolean?
+                    number? procedure? symbol?
+                    
+                    eq?
+                    
+                    cons car cdr
+                    (set-car! . set_car) (set-cdr! . set_cdr)
+                    
+                    (char->string . char_to_string)
+                    (number->string . number_to_string)
+                    (symbol->string . symbol_to_string)
+                    (string->symbol . string_to_symbol)
+                    (string->number . string_to_number)
+                    (string-length . string_length)
+                    (string-ref . string-ref)
+                    (string-set! . string_set)
+                    string-make
+                    
+                    peek-char0 read-char0 (eof-object? . eof_object_question)
+                    
+                    string-append
+                    (put-string . putstring)
+                    newline
+                    
+                    (= . num_eq)
+                    (< . lt) (> . gt)
+                    (+ . add) (- . sub) (* . mul) (/ . divd) (modulo . modulo)
+                    )))
+
+(define (builtin? s) (assoc s builtins))
+
+;; (define (run form)
+;;   (let* ((desugared (desugar `(let () . ,form)))
+;;          (mut-form (mut-conv (make-cell '()) '() desugared))
+;;          (cps-form (T-c mut-form 'halt))
+;;          (bound-variables '())
+;;          (cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form))
+;;          (hoisted-form (hoist cc-form))
+;;          (c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
+;;          (c-code-body (c-gen-body hoisted-form)))
+;;     ((formatter (list (~@ (list ~e ~%)) ~e))
+;;      (list c-codes `(define-code scm-main . ,c-code-body)))))
 
 
-(define (run form)
-  (display form) (newline)
-  (display 'desugar) (newline)
-  (let ((desugared (desugar `(let () . ,form))))
-    (display desugared) (newline)
-    (display 'mutation-analysis) (newline)
-    (let ((mut-form (mut-conv (make-cell '()) '() desugared)))
-      (display mut-form) (newline)
-      (display 'cps) (newline)
-      (let ((cps-form (T-c mut-form 'halt)))
-        (display cps-form)  (newline)
-        (display 'cc) (newline)
-        (let* ((bound-variables '())
-               (cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
-          (display cc-form)  (newline)
-          (display 'hoist) (newline)
-          (let ((hoisted-form (hoist cc-form)))
-            (for-each (lambda (i) (display `(define ,(car i) ,(cdr i))))
-                      lambdas)
-            (display hoisted-form) (newline)
-            (display 'c-gen) (newline)
-            (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))                  (c-code-body (c-gen-body hoisted-form)))
-              (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
-              
-              (display 'emit-c)
-              ((formatter (list (~@ (list ~e ~%)) ~e)) (list c-codes `(define-code scm-main . ,c-code-body)))
-              
-              
-          )))))))
+(define (compile debug form)
+  (let* ((form `(let () . ,form))
+         (bound-variables '())
+         (desugared (desugar form))
+         (mut-form (mut-conv (make-cell '()) '() desugared))
+         (cps-form (T-c mut-form 'halt))
+         (cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form))
+         (hoisted-form (hoist cc-form))
+         (c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
+         (c-code-body (c-gen-body hoisted-form)))
+    ((formatter (list (~@ (list ~e ~%)) ~e))
+     (list c-codes `(define-code scm-main . ,c-code-body)))))
 
 
 
-
-
-
-
-(define (display-code code)
-  (display "(") (display 'define-code) (display " ") (display (cadr code)) (newline)
-  (for-each (lambda (inst) (display "  ") (display inst)) (cddr code))
-  (display ")"))
 
 
 
@@ -639,7 +654,12 @@ TEST CODE
 
 
 
-(run '((define (caar x) (car (car x)))
+(compile #f '(
+
+
+
+
+(define (caar x) (car (car x)))
 (define (cadr x) (car (cdr x)))
 (define (cdar x) (cdr (car x)))
 (define (cddr x) (cdr (cdr x)))
@@ -713,13 +733,47 @@ TEST CODE
   (if (null? lst)
       init
       (fn (car lst) (foldr fn init (cdr lst)))))
+
 (define (map fn lst)
   (if (null? lst)
       '()
       (cons (fn (car lst)) (map fn (cdr lst)))))
 
+(define (map2 fn lst1 lst2)
+  (if (or (null? lst1) (null? lst2))
+      '()
+      (cons (fn (car lst1) (car lst2)) (map2 fn (cdr lst1) (cdr lst2)))))
+
+(define (for-each fn lst)
+  (if (null? lst)
+      '()
+      (begin (fn (car lst)) (for-each fn (cdr lst)))))
+
 (define (member elt l)
   (if (null? l) #f (if (equal? elt (car l)) #t (member elt (cdr l)))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; EFFICIENT MAP ALGORITHM
+
+(define (tail-map f list cell)
+  (if (null? list)
+      #f
+      (begin (set-cdr! cell (cons (f (car list))
+                                  (cdr list)))
+             (tail-map f (cdr list) (cdr cell)))))
+
+(define (fast-map f list)
+  (if (null? list)
+      '()
+      (let ((cell (cons (f (car list)) '())))
+        (tail-map f (cdr list) cell)
+        cell)))
+
+(define (reverse list) (foldl (lambda (y x) ( cons x y)) '() list))
+
+
 
 
 ;; EQUAL
@@ -749,6 +803,36 @@ TEST CODE
   (exit))
 
 
+;;;;;;;;
+;; IO ;;
+;;;;;;;;
+
+;; (define alphabetic-chars (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+;; (define numeric-chars (string->list "1234567890"))
+;; (define (char-alphabetic? c)
+;;   (member c alphabetic-chars))
+;; (define (char-numeric? c)
+;;   (member c numeric-chars))
+
+
+;; (define (peek-char port)
+;;   (peek-char0))
+
+;; (define (read-char port)
+;;   (let ((c (read-char0)))
+;;     (if (equal? #\newline c)
+;;         (set-cell! (cadr port) (+ (cell-value (cadr port)) 1))
+;;         #f)
+;;     (set-cell! (car port) (+ 1 (cell-value (car port))))
+;;     c))
+
+;; (define (open-input-file x) x)
+
+;; (define (wrap-port-with-line-tracking p)
+;;   (let* ((line (make-cell 1))
+;;          (get-line (lambda () (cell-value line))))
+;;     (cons get-line
+;;           (list (make-cell 0) line))))
 
 ;; DISPLAY
 
@@ -774,6 +858,90 @@ TEST CODE
                                                (cons " . "
                                                      (cons (tostring (cdr obj))
                                                            (cons ")" '()))))))))
+
+
+(define (concat-map f l)
+  (if (null? l)
+      '()
+      (append (f (car l))
+              (concat-map f (cdr l)))))
+
+(define (escape-string s)
+  (let ((escape-char (lambda (c)
+                       (if (or (eq? c #\")
+                               (eq? c #\\)
+                               (eq? c #\?)
+                               (eq? c #\'))
+                           (list #\\ c)
+                           (if (eq? c #\newline)
+                               (list #\\ #\n)
+                               (list c))))))
+    (list->string (concat-map escape-char (string->list s)))))
+
+(define (string-quote s)
+  (string-append "\"" (string-append (escape-string s) "\"")))
+
+
+(define (writestring obj)
+  (cond
+   ((string? obj) (string-quote obj))
+   ((char? obj) (string-append "#\\" (char->string obj)))
+   ((list? obj) (foldl string-append "(" (append
+                                           (list (foldl (lambda (m c) (string-append m " " (writestring c)))
+                                                  (writestring (car obj))
+                                                  (cdr obj)))
+                                          
+                                          (cons ")" '()))))
+   ((pair? obj) (foldl string-append "(" (cons (writestring (car obj))
+                                               (cons " . "
+                                                     (cons (writestring (cdr obj))
+                                                           (cons ")" '()))))))
+   (else (tostring obj))))
+
+
+
 (define (display obj)
   (put-string (tostring obj)))
+
+(define (string->list s)
+  (let ((len (string-length s)))
+    (let loop ((l '()) (i 0))
+      (if (> i (- len 1))
+          (reverse l)
+          (loop (cons (string-ref s i) l)
+                (+ i 1))))))
+
+(define (list->string s)
+  (let ((str (string-make (length s))))
+    (let loop ((s s) (i 0))
+      (if (null? s)
+          str
+          (begin
+            (string-set! str i (car s))
+            (loop (cdr s) (+ 1 i)))))))
+
+
+
+
+
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+
+(map display (map fib '(1 2 3 4 5 6 7 8 9)))
+
+
+(define (fib* n)
+  (fib-iter 1 0 n))
+
+(define (fib-iter a b count)
+  (if (= count 0)
+      b
+      (fib-iter (+ a b) a (- count 1))))
+
+
+(map display (map fib* '(991 9992 9993 9994999 999599 969 979 989 9999)))
+
 ))
