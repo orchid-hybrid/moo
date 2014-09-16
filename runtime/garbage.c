@@ -60,7 +60,7 @@ scm* gc_alloc_scm(scm s) {
 void gc_garbage_collect(void) {
   int i;
   
-  //fprintf(stdout, "GARBAGE COLLECTION HAPPENING...\n");
+  fprintf(stdout, "GARBAGE COLLECTION HAPPENING...\n");
   
   // swap the spaces around
   alloc_ptr = dead_space;
@@ -81,7 +81,7 @@ void gc_garbage_collect(void) {
   
   memset(dead_space, 0xFE, space_size);
   
-  //fprintf(stdout, "GARBAGE COLLECTION HAPPENED...\n");
+  fprintf(stdout, "GARBAGE COLLECTION HAPPENED...\n");
 }
 
 scm* gc_traverse_from(int copy, scm *s) {
