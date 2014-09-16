@@ -142,37 +142,6 @@
   (exit))
 
 
-;;;;;;;;
-;; IO ;;
-;;;;;;;;
-
-;; (define alphabetic-chars (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-;; (define numeric-chars (string->list "1234567890"))
-;; (define (char-alphabetic? c)
-;;   (member c alphabetic-chars))
-;; (define (char-numeric? c)
-;;   (member c numeric-chars))
-
-
-;; (define (peek-char port)
-;;   (peek-char0))
-
-;; (define (read-char port)
-;;   (let ((c (read-char0)))
-;;     (if (equal? #\newline c)
-;;         (set-cell! (cadr port) (+ (cell-value (cadr port)) 1))
-;;         #f)
-;;     (set-cell! (car port) (+ 1 (cell-value (car port))))
-;;     c))
-
-;; (define (open-input-file x) x)
-
-;; (define (wrap-port-with-line-tracking p)
-;;   (let* ((line (make-cell 1))
-;;          (get-line (lambda () (cell-value line))))
-;;     (cons get-line
-;;           (list (make-cell 0) line))))
-
 ;; DISPLAY
 
 (define (tostring obj)
@@ -261,3 +230,38 @@
             (string-set! str i (car s))
             (loop (cdr s) (+ 1 i)))))))
 
+
+;;;;;;;;
+;; IO ;;
+;;;;;;;;
+
+(define alphabetic-chars (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+(define numeric-chars (string->list "1234567890"))
+(define (char-alphabetic? c)
+  (member c alphabetic-chars))
+(define (char-numeric? c)
+  (member c numeric-chars))
+
+
+(define (peek-char port)
+  (peek-char0))
+
+(define (read-char port)
+  (let ((c (read-char0)))
+    (if (equal? #\newline c)
+        (set-cell! (cadr port) (+ (cell-value (cadr port)) 1))
+        #f)
+    (set-cell! (car port) (+ 1 (cell-value (car port))))
+    c))
+
+(define (open-input-file x) x)
+
+(define (wrap-port-with-line-tracking p)
+  (let* ((line (make-cell 1))
+         (get-line (lambda () (cell-value line))))
+    (cons get-line
+          (list (make-cell 0) line))))
+
+(define (make-cell v) (cons v '()))
+(define (cell-value c) (car c))
+(define (set-cell! c v) (set-car! c v))

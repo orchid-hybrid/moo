@@ -1,3 +1,30 @@
+
+;; Mutable cells
+
+(define (make-cell v) (cons v '()))
+(define (cell-value c) (car c))
+(define (set-cell! c v) (set-car! c v))
+
+
+
+(define (wrap-port-with-line-tracking port)
+  (let ((line 1))
+    (define (read-char*)
+      (let ((c (read-char port)))
+        (if (equal? #\newline c)
+            (set! line (+ line 1))
+            #f)
+        c))
+    (define (char-ready?*)
+      (char-ready port))
+    (define (close*)
+      (close port))
+    (define (peek-char*)
+      (peek-char port))
+    (cons (lambda () line)
+          (make-input-port read-char* char-ready?* close* peek-char*))))
+
+
 (define char->string string)
 
 (define (concat-map f l)

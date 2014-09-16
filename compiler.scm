@@ -19,12 +19,6 @@
                    (pattern? (car p) (car e))
                    (pattern? (cdr p) (cdr e))))))
 
-;; Mutable cells
-
-(define (make-cell v) (cons v '()))
-(define (cell-value c) (car c))
-(define (set-cell! c v) (set-car! c v))
-
 
 ;; Desugaring macros
 
@@ -253,9 +247,10 @@
                   ;; dont replace vars shadowed by this lambda that aren't mutable
                   (conv-body (mut-conv inner-mut-vars (append not-shadowed
                                                               (cell-value inner-mut-vars)) m))
+                  (inner-mutables (cell-value inner-mut-vars))
                   (boxed-vars (map (lambda (v) `(cons ,v '()))
                                    (set-intersect vs-normal (cell-value inner-mut-vars)))))
-             (if (equal? '() boxed-vars)
+             (if (null? boxed-vars)
                  `(lambda ,vs ,conv-body)
                  `(lambda ,vs
                     ((lambda ,vs ,conv-body) . ,boxed-vars))))))
@@ -376,7 +371,8 @@
            (let ((inner-free-vars (make-cell '())))
              `(make-closure (lambda ,(cons 'env vs)
                               ,(closure-convert (append vs globally-bound) vs inner-free-vars m))
-                            (vector . ,(map (lambda (a) (closure-convert globally-bound bound free-vars (car a)))
+                            (vector . ,(map (lambda (a)
+                                              (closure-convert globally-bound bound free-vars (car a)))
                                             (cell-value inner-free-vars)))))))
         ((list? e)
          ;; app
@@ -407,7 +403,7 @@
            (hoist! `(lambda ,vs ,(hoist m)))))
         ((list? e)
          (map hoist e))
-        (else "unknown in hoist")))
+        (else (error (cons "unknown in hoist" e)))))
 
 ;; C
 
@@ -613,46 +609,6 @@
 
 (define (builtin? s) (assoc s builtins))
 
-;; (define (compile form debug)
-;;   (let ((form `(let () . ,form))
-;;         (bound-variables '()))
-;;     (display 'compiling) (newline)
-;;     (when debug (pretty-print form) (newline))
-;;     (let ((desugared (desugar form)))
-;;       (display 'desugaring) (newline)
-;;       (when debug (pretty-print desugared) (newline))
-;;       (let ((mut-form (mut-conv (make-cell '()) '() desugared)))
-;;         (display 'mutation-analysis) (newline)
-;;         (when debug (pretty-print mut-form) (newline))
-;;         (let ((cps-form (T-c mut-form 'halt)))
-;;           (display 'cps) (newline)
-;;           (when debug (pretty-print cps-form) (newline))
-;;           (let ((cc-form (closure-convert bound-variables bound-variables (make-cell '()) cps-form)))
-;;             (display 'cc) (newline)
-;;             (when debug (pretty-print cc-form) (newline))
-;;             (let ((hoisted-form (hoist cc-form)))
-;;               (display 'hoist) (newline)
-;;               (when debug 
-;;                     (for-each (lambda (i)
-;;                                 (pretty-print `(define ,(car i) ,(cdr i))))
-;;                               lambdas) (newline)
-;;                               (pretty-print hoisted-form) (newline))
-;;               (let ((c-codes (map (lambda (i) (c-gen `(define ,(car i) ,(cdr i)))) lambdas))
-;;                     (c-code-body (c-gen-body hoisted-form)))
-;;                 (display 'c-gen) (newline)
-;;                 (when debug (for-each (lambda (code) (display-code code) (newline)) c-codes) (newline)
-;;                       (pretty-print c-code-body) (newline))
-;;                 (let ((c-string (with-output-to-string
-;;                                   (lambda ()
-;;                                     ((formatter (list (~@ (list ~e ~%)) ~e))
-;;                                      (list c-codes `(define-code scm-main . ,c-code-body)))))))
-;;                   (display 'emit-c) (newline)
-;;                   (when debug (display c-string)
-;;                         (newline))
-;;                   (with-output-to-file "moo.c"
-;;                     (lambda ()
-;;                       (display c-string) (newline)))
-;;                   #t)))))))))
 
 (define (compile form debug)
   (let* ((form `(let () . ,form))
@@ -716,13 +672,16 @@
 
 (let ((debug #f))
   (let ((filename (or (last (command-line-arguments)) "test.scm")))
-    (compile (append (if debug
+    (compile  (foldl append
+                     '()
+                     (if debug
                          '()
-                         (append (scm-parse-file "prelude.scm")
-                                 (append (scm-parse-file "set.scm")
-                                         (append (scm-parse-file "gensym.scm")
-                                                 (scm-parse-file "format-combinators.scm")))))
-                     (scm-parse-file filename))
+                         (list (scm-parse-file "prelude.scm")
+                               (scm-parse-file "set.scm")
+                               (scm-parse-file "gensym.scm")
+                               (scm-parse-file "format-combinators.scm")
+                               (scm-parse-file "parser.scm")
+                               (scm-parse-file filename))))
              debug)))
 
 (exit)

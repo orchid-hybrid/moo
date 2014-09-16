@@ -7,32 +7,7 @@
           #f)))
 
 
-(define (wrap-port-with-line-tracking port)
-  (let ((line 1))
-    (define (read-char*)
-      (let ((c (read-char port)))
-        (if (equal? #\newline c)
-            (set! line (+ line 1))
-            #f)
-        c))
-    (define (char-ready?*)
-      (char-ready port))
-    (define (close*)
-      (close port))
-    (define (peek-char*)
-      (peek-char port))
-    (cons (lambda () line)
-          (make-input-port read-char* char-ready?* close* peek-char*))))
 
-
-(define (make-cell v)
-  (cons 'cell v))
-
-(define (set-cell! cell value)
-  (set-cdr! cell value))
-
-(define (cell-value cell)
-  (cdr cell))
 
 (define (collector)
   (let ((list (make-cell '()))
@@ -47,11 +22,6 @@
                 (begin
                   (set-cdr! (cell-value last) (cons value '()))
                   (set-cell! last (cdr (cell-value last)))))))))
-;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;
-
-
 
 (define (whitespace? c)
   (or (equal? c #\space)
